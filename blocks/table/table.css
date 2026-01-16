@@ -4,6 +4,18 @@
   overflow-x: scroll;
   overflow-y: hidden;
 
+  &.accent {
+    td {
+      background-color: light-dark(var(--s2-blue-200), var(--s2-blue-900));
+    }
+
+    .table-heading-row {
+      td {
+        background-color: light-dark(var(--s2-blue-300), var(--s2-blue-700));
+      }
+    }
+  }
+
   table {
     margin: -4px;
     border-collapse: collapse;
