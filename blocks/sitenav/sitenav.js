@@ -70,7 +70,7 @@ function formatSiteData(pageData) {
 }
 
 async function fetchSiteData() {
-  const resp = await fetch(`${codeBase}/query-index.json`);
+  const resp = await fetch(`${codeBase}/query-index.json?t=${Date.now()}`);
   if (!resp.ok) throw Error('Could not fetch query index');
   const { data } = await resp.json();
   return data;
