@@ -45,20 +45,7 @@ const loadNav = async (name) => {
   await loadBlock(nav);
 };
 
-function setColorScheme() {
-  const { classList } = document.body;
-  const hasScheme = classList.contains('light-theme') || classList.contains('dark-theme');
-  if (hasScheme) return;
-  const scheme = matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark-theme'
-    : 'light-theme';
-  classList.add(scheme);
-}
-
 (async function loadPage() {
-  // Project functions
-  setColorScheme();
-
   setConfig({ locales, linkBlocks, components, decorateArea });
 
   // AK functions

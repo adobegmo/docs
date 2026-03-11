@@ -30,19 +30,19 @@ async function decorateLink(section, pattern, name) {
       e.preventDefault();
       const { body } = document;
 
-      let currPref = localStorage.getItem('docket-theme');
+      let currPref = localStorage.getItem('color-scheme');
       if (!currPref) {
         currPref = matchMedia('(prefers-color-scheme: dark)')
-          .matches ? 'dark-theme' : 'light-theme';
+          .matches ? 'dark-scheme' : 'light-scheme';
       }
 
-      const theme = currPref === 'dark-theme'
-        ? { add: 'light-theme', remove: 'dark-theme' }
-        : { add: 'dark-theme', remove: 'light-theme' };
+      const scheme = currPref === 'dark-scheme'
+        ? { add: 'light-scheme', remove: 'dark-scheme' }
+        : { add: 'dark-scheme', remove: 'light-scheme' };
 
-      body.classList.remove(theme.remove);
-      body.classList.add(theme.add);
-      localStorage.setItem('docket-theme', theme.add);
+      body.classList.remove(scheme.remove);
+      body.classList.add(scheme.add);
+      localStorage.setItem('color-scheme', scheme.add);
     });
   }
 }

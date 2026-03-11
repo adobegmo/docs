@@ -131,11 +131,11 @@ body {
     color: light-dark(var(--dark-color), var(--light-link));
   }
 
-  &.light-theme {
+  &.light-scheme {
     color-scheme: light;
   }
 
-  &.dark-theme {
+  &.dark-scheme {
     color-scheme: dark;
   }
 }
