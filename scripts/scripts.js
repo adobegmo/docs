@@ -1,17 +1,18 @@
-import { loadArea, loadBlock, setConfig } from './nx.js';
+import { loadArea, loadBlock, setConfig } from './ak.js';
 
 // Supported locales
-const locales = {
-  '': { ietf: 'en', tk: 'etj3wuq.css' },
-  '/de': { ietf: 'de', tk: 'etj3wuq.css' },
-};
+const locales = { '': { ietf: 'en', tk: 'etj3wuq.css' } };
 
-// Widget patterns to look for
-const widgets = [
+// Blocks built by links
+const linkBlocks = [
   { fragment: '/fragments/' },
   { youtube: 'https://www.youtube' },
 ];
 
+// Blocks with self-managed styles
+const components = ['fragment'];
+
+// All off origin links open in a new window
 function decorateLinks(area) {
   const anchors = area.querySelectorAll('a');
   for (const a of anchors) {
@@ -34,16 +35,6 @@ const decorateArea = ({ area = document }) => {
   eagerLoad(area, 'img');
 };
 
-function detectTutorial() {
-  const { classList } = document.body;
-  if (!classList.contains('tutorial-template')) return;
-  const section = document.createElement('div');
-  const block = document.createElement('div');
-  block.className = 'tutorial-nav';
-  section.append(block);
-  document.querySelector('main').append(section);
-}
-
 const loadNav = async (name) => {
   const position = name === 'sitenav' ? 'beforebegin' : 'afterend';
   const main = document.querySelector('main');
@@ -64,29 +55,15 @@ function setColorScheme() {
   classList.add(scheme);
 }
 
-function setLabPlaceholders() {
-  const org = localStorage.getItem('lab-org');
-  const site = localStorage.getItem('lab-site');
-  if (!(site || org)) return;
-  document.body.outerHTML = document.body.outerHTML
-    .replaceAll('{ORG}', org)
-    .replaceAll('{SITE}', site)
-    .replaceAll('%7BORG%7D', org)
-    .replaceAll('%7BSITE%7D', site);
-}
-
 (async function loadPage() {
   // Project functions
-  setLabPlaceholders();
   setColorScheme();
-  detectTutorial();
 
-  setConfig({ locales, widgets, decorateArea });
+  setConfig({ locales, linkBlocks, components, decorateArea });
 
   // AK functions
   await loadArea();
 
   // Lazy project functions
   loadNav('sitenav');
-  loadNav('pagenav');
 }());

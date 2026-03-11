@@ -26,12 +26,12 @@
 }
 
 @font-face {
-    font-family: adobe-clean;
-    src: url("https://use.typekit.net/af/152d2a/00000000000000007735dada/31/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=i7&v=3") format("woff2");
-    font-display: optional;
-    font-style: italic;
-    font-weight: 700;
-    font-stretch: normal;
+  font-family: adobe-clean;
+  src: url("https://use.typekit.net/af/152d2a/00000000000000007735dada/31/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=i7&v=3") format("woff2");
+  font-display: optional;
+  font-style: italic;
+  font-weight: 700;
+  font-stretch: normal;
 }
 
 :root {
@@ -230,7 +230,6 @@ img {
   height: auto;
 }
 
-
 /* sections */
 .section {
   display: block;
@@ -239,13 +238,13 @@ img {
 .default-content {
   > h2 {
     position: relative;
-    margin-block-end: 1em;
+    padding-block-end: 1em;
 
     &::after {
       display: block;
       content: "";
       position: absolute;
-      bottom: -12px;
+      bottom: 0.5em;
       left: 0;
       right: 0;
       height: 2px;

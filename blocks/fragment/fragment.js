@@ -1,4 +1,4 @@
-import { loadArea, getConfig } from '../../scripts/nx.js';
+import { loadArea, getConfig } from '../../scripts/ak.js';
 
 function replaceDotMedia(path, doc) {
   const resetAttributeBase = (tag, attr) => {

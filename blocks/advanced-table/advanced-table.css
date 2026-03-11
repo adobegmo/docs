@@ -1,0 +1,33 @@
+.advanced-table {
+  font-size: 14px;
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+
+    tr:not(:first-child) {
+      &:hover {
+        background-color: light-dark(var(--s2-gray-100), var(--s2-gray-800));
+      }
+    }
+
+    td {
+      border-bottom: 1px solid light-dark(var(--s2-gray-300), var(--s2-gray-700));
+      padding: 16px;
+      white-space: normal;
+      vertical-align: top;
+
+      pre {
+        margin: 0;
+      }
+
+      code {
+        white-space: normal;
+      }
+    }
+
+    .table-heading-row {
+      font-weight: 700;
+    }
+  }
+}

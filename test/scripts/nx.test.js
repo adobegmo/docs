@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { setConfig } from '../../scripts/nx.js';
+import { setConfig } from '../../scripts/ak.js';
 
 describe('Basic Config', () => {
   // it('Sets empty config', () => {

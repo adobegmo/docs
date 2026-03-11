@@ -1,4 +1,4 @@
-import { getConfig } from '../nx.js';
+import { getConfig } from '../ak.js';
 
 const { nxBase } = getConfig();
 

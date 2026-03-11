@@ -1,4 +1,4 @@
-import { getConfig, loadStyle } from '../nx.js';
+import { getConfig, loadStyle } from '../ak.js';
 
 const KITS = { en: 'cks7hcz.css' };
 

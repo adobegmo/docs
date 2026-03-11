@@ -1,4 +1,4 @@
-import { getConfig, getMetadata } from '../../scripts/nx.js';
+import { getConfig, getMetadata } from '../../scripts/ak.js';
 import getSvg from '../../scripts/utils/svg.js';
 import { loadFragment } from '../fragment/fragment.js';
 
@@ -80,7 +80,7 @@ export default async function init(el) {
   const headerMeta = getMetadata('header');
   const path = headerMeta || HEADER_PATH;
   try {
-    const fragment = await loadFragment(`${locale.base}${path}`);
+    const fragment = await loadFragment(`${locale.prefix}${path}`);
     fragment.classList.add('header-content');
     await decorateHeader(fragment);
     el.append(fragment);

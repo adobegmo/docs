@@ -1,4 +1,4 @@
-import { getConfig } from '../../scripts/nx.js';
+import { getConfig } from '../../scripts/ak.js';
 
 const { codeBase } = getConfig();
 
