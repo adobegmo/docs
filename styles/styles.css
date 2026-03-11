@@ -51,10 +51,10 @@
 
   --light-color: #fff;
   --light-link: #e6e6e6;
-  --light-main-link: #ea998f;
+  --light-main-link: #a1a1a1;
   --dark-color: #0e0e0e;
   --dark-link: #3f3f3f;
-  --dark-main-link: #d73220;
+  --dark-main-link: #2c2c2c;
 
   /* Spectrum 2 Colors */
   --s2-cyan-800: #0086b4;
@@ -150,6 +150,11 @@ main {
 
   a {
     color: light-dark(var(--dark-main-link), var(--light-main-link));
+    text-decoration: underline;
+
+    &:hover {
+      text-decoration: none;
+    }
   }
 
   p > code,
