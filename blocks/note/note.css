@@ -1,0 +1,37 @@
+.note {
+  background-color: #f3f7fc;
+  color: #000;
+  margin-block: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #1861bb;
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin: 0;
+  }
+
+  code {
+    background-color: #efefef;
+  }
+
+  &.warning {
+    background-color: #fdf1f2;
+    border-left: 4px solid #e14f62;
+  }
+
+  &.caution {
+    background-color: #fdf4c1;
+    border-left: 4px solid #ffc32d;
+  }
+
+  &.success {
+    background-color: #effdf5;
+    border-left: 4px solid #55b685;
+  }
+}
