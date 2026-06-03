@@ -149,7 +149,7 @@ main {
   word-break: break-word;
 
   a {
-    color: light-dark(var(--dark-main-link), var(--light-main-link));
+    color: light-dark(var(--s2-blue-900), var(--s2-blue-900));
     text-decoration: underline;
 
     &:hover {
