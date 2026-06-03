@@ -63,8 +63,10 @@ async function decorateHeader(fragment) {
   }
 
   const ul = fragment.querySelector('ul');
-  const mainNav = ul.closest('.section');
-  decorateMainNav(mainNav);
+  if (ul) {
+    const mainNav = ul.closest('.section');
+    decorateMainNav(mainNav);
+  }
 
   const actions = fragment.querySelector('.section:last-child');
 
