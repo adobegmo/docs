@@ -13,17 +13,11 @@ function generateSiteList(siteData, pathname) {
     const orderA = siteData[a].navOrder;
     const orderB = siteData[b].navOrder;
 
-    // If both have navOrder, sort numerically
-    if (orderA !== undefined && orderB !== undefined) {
-      return Number(orderA) - Number(orderB);
-    }
+    // Treat undefined navOrder as Infinity so items without order fall to the end
+    const numOrderA = orderA !== undefined ? Number(orderA) : Infinity;
+    const numOrderB = orderB !== undefined ? Number(orderB) : Infinity;
 
-    // Items with navOrder come before items without
-    if (orderA !== undefined) return -1;
-    if (orderB !== undefined) return 1;
-
-    // If neither has navOrder, maintain original order
-    return 0;
+    return numOrderA - numOrderB;
   });
 
   return sortedKeys.map((key) => {
