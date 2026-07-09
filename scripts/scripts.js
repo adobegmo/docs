@@ -7,6 +7,7 @@ const locales = { '': { ietf: 'en', tk: 'etj3wuq.css' } };
 const linkBlocks = [
   { fragment: '/fragments/' },
   { youtube: 'https://www.youtube' },
+  { spacing: '/widgets/spacing' },
 ];
 
 // Blocks with self-managed styles

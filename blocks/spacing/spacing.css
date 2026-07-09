@@ -1,0 +1,25 @@
+.spacing {
+  &.space-xs {
+    height: var(--spacing-xs);
+  }
+
+  &.space-s {
+    height: var(--spacing-s);
+  }
+
+  &.space-m {
+    height: var(--spacing-m);
+  }
+
+  &.space-l {
+    height: var(--spacing-l);
+  }
+
+  &.space-xl {
+    height: var(--spacing-xl);
+  }
+
+  &.space-xxl {
+    height: var(--spacing-xxl);
+  }
+}

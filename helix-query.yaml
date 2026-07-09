@@ -1,5 +1,22 @@
 auto-generated: true
 indices:
+  default:
+    include:
+      - /**
+    target: /query-index.json
+    properties:
+      title:
+        select: head > meta[property="og:title"]
+        value: |
+          attribute(el, "content")
+      description:
+        select: head > meta[name="description"]
+        value: |
+          attribute(el, "content")
+      navOrder:
+        select: head > meta[name="nav-order"]
+        value: |
+          attribute(el, "content")
   blog:
     include:
       - /blog/**

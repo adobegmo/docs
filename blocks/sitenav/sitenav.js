@@ -8,7 +8,25 @@ const EXP_ICON = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xm
 const { codeBase } = getConfig();
 
 function generateSiteList(siteData, pathname) {
-  return Object.keys(siteData).map((key) => {
+  // Sort siblings by navOrder
+  const sortedKeys = Object.keys(siteData).sort((a, b) => {
+    const orderA = siteData[a].navOrder;
+    const orderB = siteData[b].navOrder;
+
+    // If both have navOrder, sort numerically
+    if (orderA !== undefined && orderB !== undefined) {
+      return Number(orderA) - Number(orderB);
+    }
+
+    // Items with navOrder come before items without
+    if (orderA !== undefined) return -1;
+    if (orderB !== undefined) return 1;
+
+    // If neither has navOrder, maintain original order
+    return 0;
+  });
+
+  return sortedKeys.map((key) => {
     const ul = document.createElement('ul');
 
     const inPath = pathname.startsWith(siteData[key].path);
@@ -59,6 +77,9 @@ function formatSiteData(pageData) {
       if (index === segments.length - 1) {
         currentNode[segment].title = item.title;
         currentNode[segment].path = item.path;
+        if (item.navOrder !== undefined) {
+          currentNode[segment].navOrder = item.navOrder;
+        }
       }
 
       currentNode = currentNode[segment].children;

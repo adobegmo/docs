@@ -9,7 +9,24 @@ async function fetchSiteData() {
   return data.sort((a, b) => {
     const segmentsA = a.path.split('/').length - 1;
     const segmentsB = b.path.split('/').length - 1;
-    return segmentsA - segmentsB;
+
+    // First sort by depth
+    if (segmentsA !== segmentsB) {
+      return segmentsA - segmentsB;
+    }
+
+    // Then sort siblings by navOrder
+    const orderA = a.navOrder;
+    const orderB = b.navOrder;
+
+    if (orderA !== undefined && orderB !== undefined) {
+      return Number(orderA) - Number(orderB);
+    }
+
+    if (orderA !== undefined) return -1;
+    if (orderB !== undefined) return 1;
+
+    return 0;
   });
 }
 
