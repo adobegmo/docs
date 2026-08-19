@@ -13,9 +13,13 @@ function generateSiteList(siteData, pathname) {
     const orderA = siteData[a].navOrder;
     const orderB = siteData[b].navOrder;
 
-    // Treat undefined navOrder as Infinity so items without order fall to the end
-    const numOrderA = orderA !== undefined ? Number(orderA) : Infinity;
-    const numOrderB = orderB !== undefined ? Number(orderB) : Infinity;
+    // Treat missing/blank/non-numeric navOrder as Infinity so those items fall to the end.
+    // The query index sends "" (empty string) for pages without an order, and Number("") is 0,
+    // so we must guard against empty/NaN values explicitly rather than only checking for undefined.
+    const numOrderA = orderA !== undefined && orderA !== '' && !Number.isNaN(Number(orderA))
+      ? Number(orderA) : Infinity;
+    const numOrderB = orderB !== undefined && orderB !== '' && !Number.isNaN(Number(orderB))
+      ? Number(orderB) : Infinity;
 
     return numOrderA - numOrderB;
   });
