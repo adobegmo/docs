@@ -4,7 +4,10 @@ export default function init(el) {
 
   const headers = [...rows[0].children].map((cell) => cell.textContent.trim());
 
-  const widths = [...el.classList]
+  // Read the raw class attribute (not classList) so repeated widths like
+  // `col-20 col-20` are preserved — DOMTokenList dedupes duplicate tokens.
+  const widths = (el.getAttribute('class') || '')
+    .split(/\s+/)
     .map((cls) => cls.match(/^col-(\d+)$/))
     .filter(Boolean)
     .map((match) => Number(match[1]));

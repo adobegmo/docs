@@ -1,4 +1,5 @@
 .table {
+  container-type: inline-size;
   font-size: 14px;
   line-height: 1.5;
 
@@ -43,7 +44,7 @@
   }
 }
 
-@media (width < 600px) {
+@container (width < 600px) {
   .table {
     table,
     tbody,
