@@ -11,11 +11,16 @@ data:
     # Multi-site (repoless): map each gated public host to its da.live org/site.
     # The host also acts as the CSRF origin allowlist. Add an entry per site.
     # hostSuffix is optional per entry; defaults to AEM_HOST_SUFFIX below.
+    #
+    # WORKAROUND (SKYOPS-157895): the Adobe CDN config generator crashes on a raw
+    # JSON-object config value, so SITES must be base64-encoded here and is decoded
+    # in src/lib/sites.js (parseSites). Regenerate after changing sites with:
+    #   node -e 'console.log(Buffer.from(JSON.stringify(MAP)).toString("base64"))'
+    # Decoded value below is:
+    #   { "test.red.adobe.com": { "org": "adobegmo", "site": "red" } }
+    # Revert to raw JSON once SKYOPS-157895 ships (the parser accepts either).
     - key: SITES
-      value: >-
-        {
-          "test.red.adobe.com": { "org": "adobegmo", "site": "red" }
-        }
+      value: "eyJ0ZXN0LnJlZC5hZG9iZS5jb20iOnsib3JnIjoiYWRvYmVnbW8iLCJzaXRlIjoicmVkIn19"
     - key: AEM_HOST_SUFFIX
       value: "aem.page"           # default AEM tier: aem.live (published) or aem.page (preview)
     - key: IMS_ENV

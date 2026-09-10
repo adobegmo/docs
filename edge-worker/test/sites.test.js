@@ -23,6 +23,13 @@ describe('parseSites', () => {
     assert.deepEqual(parseSites({ SITES: 'not json' }), {});
     assert.deepEqual(parseSites({ SITES: '[1,2]' }), {});
   });
+  it('decodes a base64-encoded SITES value (SKYOPS-157895 workaround)', () => {
+    const b64 = Buffer.from(SITES).toString('base64');
+    assert.deepEqual(parseSites({ SITES: b64 }), JSON.parse(SITES));
+  });
+  it('still accepts raw JSON, so local dev and a future CLI fix both work', () => {
+    assert.deepEqual(parseSites({ SITES }), JSON.parse(SITES));
+  });
 });
 
 describe('resolveSite', () => {

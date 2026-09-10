@@ -25,16 +25,38 @@ export const imslibEnvironment = (imsEnv) => (imsEnv === 'prod' ? 'prod' : 'stg1
 
 const normalizeHost = (host) => (typeof host === 'string' ? host.trim().toLowerCase() : '');
 
+const asSiteMap = (parsed) => (
+  parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
+);
+
+const tryJson = (value) => {
+  try {
+    return asSiteMap(JSON.parse(value));
+  } catch {
+    return null;
+  }
+};
+
 // Parses the SITES config once into a plain map. Any missing / malformed value
 // yields an empty map, which denies every host - fail closed by construction.
+//
+// The DEPLOYED value is base64-encoded JSON, not raw JSON: the Adobe CDN config
+// generator (SKYOPS-157895) crashes when a data.configs value is a JSON-object
+// string - its Handlebars template re-emits the value unquoted and HTML-escaped,
+// so the `{ } " :` (and the escaped `&quot;`) break the generator's own YAML
+// parse and the whole CDN config fails to deploy. Encoding to base64 - which has
+// no YAML/HTML-significant characters - sidesteps that. Local dev (fastly.toml)
+// may still use raw JSON, so we try raw first, then base64-decode. Revert to raw
+// JSON once SKYOPS-157895 ships; this parser keeps working either way.
 export const parseSites = (env) => {
-  try {
-    const parsed = JSON.parse(env?.SITES ?? '{}');
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) { return {}; }
-    return parsed;
-  } catch {
-    return {};
+  const raw = env?.SITES ?? '{}';
+  let result = tryJson(raw);
+  if (result === null) {
+    let decoded = null;
+    try { decoded = atob(raw); } catch { decoded = null; }
+    if (decoded !== null) { result = tryJson(decoded); }
   }
+  return result ?? {};
 };
 
 // Resolves the target site for a request host, or null when the host is not a

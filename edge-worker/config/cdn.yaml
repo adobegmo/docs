@@ -1,16 +1,25 @@
 kind: "CDN"
 version: "1"
 data:
-  # TEMPORARY DIAGNOSTIC — does NOT reference the edge function.
-  # If the config pipeline's CDN step goes GREEN with this, then the failure is
-  # specifically the `selectAemOrigin: edgefunction-docket-auth` binding (i.e. the
-  # edge-function compute isn't provisioned), not our config or the domain.
-  # Revert to the real gate-red-preview rule after testing.
-  requestTransformations:
+  originSelectors:
     rules:
-      - name: cdn-debug-noop
-        when: { reqProperty: path, equals: "/__cdn_debug_noop" }
-        actions:
-          - type: set
-            reqHeader: x-cdn-debug
-            value: "ok"
+      # IMPORTANT: an Edge Delivery config pipeline applies this file to ALL site
+      # domains registered in the program. So gate PER HOST - one rule per site
+      # you want behind auth - rather than a blanket catch-all, or you would route
+      # every repoless site through the worker and lock out the ungated ones.
+      #
+      # Each gated host must also have a matching entry in the SITES config
+      # (edgeFunctions.yaml). Add a rule + a SITES entry together per new site.
+      #
+      # No loopback-guard header is used on purpose: the worker proxies to the
+      # site's aem.page/aem.live origin (a different domain), so this domain-scoped
+      # rule never re-matches the worker's own upstream request. A client-supplied
+      # bypass header would defeat an auth gate, so it is deliberately avoided.
+      - name: gate-red-preview
+        when:
+          reqProperty: domain
+          equals: "test.red.adobe.com"
+        action:
+          type: selectAemOrigin
+          originName: edgefunction-docket-auth
+          skipCache: true
