@@ -17,7 +17,7 @@
  */
 
 import { loadEnv } from './lib/env.js';
-import { resolveSite } from './lib/sites.js';
+import { resolveSite, parseSites } from './lib/sites.js';
 import { readSession, DEFAULT_SESSION_COOKIE_NAME } from './lib/session.js';
 import { createSession, deleteSession } from './handlers/auth.js';
 import { proxyToAem } from './handlers/proxy.js';
@@ -76,6 +76,23 @@ const isAuthenticated = async (request, env) => {
   return (await readSession(cookie, env.SESSION_SECRET, Date.now())) !== null;
 };
 
+// The public host can arrive in x-forwarded-host (set by the Adobe CDN in front
+// of the edge function) rather than the request URL - behind a CDN the URL's own
+// host is often an internal one. Try each candidate against SITES and use the
+// first that maps, so resolution works regardless of which one carries it.
+const resolveSiteFromRequest = (env, request, url) => {
+  const candidates = [
+    (request.headers.get('x-forwarded-host') || '').split(',')[0].trim(),
+    request.headers.get('host') || '',
+    url.host,
+  ];
+  for (const host of candidates) {
+    const site = resolveSite(env, host);
+    if (site) { return site; }
+  }
+  return null;
+};
+
 async function handleRequest(event) {
   const { request } = event;
   const url = new URL(request.url);
@@ -85,7 +102,17 @@ async function handleRequest(event) {
     env = await loadEnv();
     // Resolve which site this request targets from its host (repoless: one code
     // base, many sites). Threaded into the auth + proxy handlers.
-    const site = resolveSite(env, url.host);
+    const site = resolveSiteFromRequest(env, request, url);
+    // TEMP DIAGNOSTIC (remove once resolution is confirmed): shows which host
+    // candidate matched (or none) and whether SITES decoded. No secrets logged.
+    console.log(JSON.stringify({
+      msg: 'site-resolve',
+      matched: site ? site.host : null,
+      urlHost: url.host,
+      xForwardedHost: request.headers.get('x-forwarded-host'),
+      hostHeader: request.headers.get('host'),
+      siteKeys: Object.keys(parseSites(env)),
+    }));
 
     if (isAuthPath(url.pathname)) {
       return await handleAuth({ url, env, request, site });

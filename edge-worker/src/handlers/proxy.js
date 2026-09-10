@@ -25,8 +25,9 @@ const formatRequest = (request, url, env, site) => {
   const req = new Request(aemUrl, request);
 
   // x-forwarded-host tells aem.live/aem.page the public hostname (for absolute
-  // URLs, redirects, sitemaps) - the host this request actually came in on.
-  req.headers.set('x-forwarded-host', url.host);
+  // URLs, redirects, sitemaps) - the resolved public host (site.host), not
+  // url.host, which behind the CDN may be an internal host.
+  req.headers.set('x-forwarded-host', site.host);
 
   // The session cookie is the worker's own credential; no upstream needs any
   // browser cookie, so drop the whole header rather than leak docket_session.
