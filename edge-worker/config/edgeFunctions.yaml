@@ -14,7 +14,7 @@ data:
     - key: SITES
       value: >-
         {
-          "preview.red.adobe.com": { "org": "adobegmo", "site": "red" }
+          "test.red.adobe.com": { "org": "adobegmo", "site": "red" }
         }
     - key: AEM_HOST_SUFFIX
       value: "aem.page"           # default AEM tier: aem.live (published) or aem.page (preview)
