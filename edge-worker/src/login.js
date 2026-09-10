@@ -43,7 +43,13 @@ const clientScript = (clientId, environment) => `
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ access_token: token }),
       });
-      if (resp.status === 200) { window.location.reload(); return; }
+      if (resp.status === 200) {
+        // Reload WITHOUT the #access_token in the URL: replace() drops it from
+        // history, and navigating to the hashless URL triggers a full load the
+        // edge function now serves from origin (cookie is set).
+        window.location.replace(window.location.pathname + window.location.search);
+        return;
+      }
       if (resp.status === 403) {
         showMessage(NOT_AUTHORIZED, 'This account is not authorized to view this site. Ask the site owner to add you, or sign in with a different account.');
         document.getElementById('switch').hidden = false;
@@ -59,7 +65,12 @@ const clientScript = (clientId, environment) => `
     client_id: '${clientId}',
     scope: '${IMS_SCOPES}',
     locale: 'en_US',
-    autoValidateToken: true,
+    // false on purpose: imslib's client-side validation calls /ims/check/v6/token
+    // cross-origin, which IMS only allows for origins registered on the client's
+    // CORS allowlist. We don't rely on it - the worker validates the token
+    // server-side against the IMS profile endpoint in /auth/session (the real
+    // security boundary), so client-side re-validation is redundant here.
+    autoValidateToken: false,
     environment: '${environment}',
     useLocalStorage: true,
     onError: () => { showSignIn(); },
