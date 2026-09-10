@@ -112,6 +112,14 @@ async function handleRequest(event) {
       xForwardedHost: request.headers.get('x-forwarded-host'),
       hostHeader: request.headers.get('host'),
       siteKeys: Object.keys(parseSites(env)),
+      // presence only (never the values) - shows which env var is empty at runtime
+      present: {
+        SESSION_SECRET: !!env.SESSION_SECRET,
+        IMS_CLIENT_ID: !!env.IMS_CLIENT_ID,
+        IMS_CLIENT_SECRET: !!env.IMS_CLIENT_SECRET,
+        IMS_SCOPE: !!env.IMS_SCOPE,
+        IMS_CLIENT_ID_PUBLIC: !!env.IMS_CLIENT_ID_PUBLIC,
+      },
     }));
 
     if (isAuthPath(url.pathname)) {

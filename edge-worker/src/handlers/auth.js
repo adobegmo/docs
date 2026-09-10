@@ -141,7 +141,9 @@ export const createSession = async ({ url, env, request, site }) => {
   // one is a deploy mistake, not a caller error - surface it as 500 rather than
   // letting it collapse into the 502 "DA unreachable" path.
   if (!env.IMS_CLIENT_ID || !env.IMS_CLIENT_SECRET || !env.IMS_SCOPE) {
-    return problem(500, 'Visitor authorization is not configured');
+    // TEMP: name the missing key(s) in the body so it shows in the Network tab.
+    const missing = ['IMS_CLIENT_ID', 'IMS_CLIENT_SECRET', 'IMS_SCOPE'].filter((k) => !env[k]);
+    return problem(500, `Visitor authorization is not configured (missing: ${missing.join(', ')})`);
   }
 
   if (!env.IMS_CLIENT_ID_PUBLIC) {
