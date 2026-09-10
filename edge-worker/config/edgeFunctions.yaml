@@ -25,7 +25,7 @@ data:
     - key: IMS_CLIENT_ID
       value: "1ff3f2543d454d1e97e500d7dfd9ba94"        # confidential client_credentials identity (DA read)
     - key: IMS_SCOPE
-      value: "AdobeID,openid"           # scopes for the client_credentials token
+      value: "openid, AdobeID, additional_info.projectedProductContext, aem.frontend.all, read_organizations"           # scopes for the client_credentials token
 
   # Sensitive values. The real value lives as a Cloud Manager secret; the
   # ${{...}} reference points at it. Never put secret values in `configs`.
