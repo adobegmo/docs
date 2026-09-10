@@ -1,0 +1,39 @@
+kind: "EdgeFunctions"
+version: "1"
+data:
+  functions:
+    - name: docket-auth
+
+  # Non-sensitive configuration. Committed to Git and exposed to the function via
+  # the "config_default" config store (read with ConfigStore in src/lib/env.js).
+  # Fill in the deployment-specific values before running the config pipeline.
+  configs:
+    # Multi-site (repoless): map each gated public host to its da.live org/site.
+    # The host also acts as the CSRF origin allowlist. Add an entry per site.
+    # hostSuffix is optional per entry; defaults to AEM_HOST_SUFFIX below.
+    - key: SITES
+      value: >-
+        {
+          "preview.red.adobe.com": { "org": "adobegmo", "site": "red" }
+        }
+    - key: AEM_HOST_SUFFIX
+      value: "aem.page"           # default AEM tier: aem.live (published) or aem.page (preview)
+    - key: IMS_ENV
+      value: "prod"               # prod | stage | dev (selects the IMS host + imslib env)
+    - key: IMS_CLIENT_ID_PUBLIC
+      value: "<public-oauth-client-id>"   # browser sign-in + IMS profile call
+    - key: IMS_CLIENT_ID
+      value: "<service-client-id>"        # confidential client_credentials identity (DA read)
+    - key: IMS_SCOPE
+      value: "<service-scopes>"           # scopes for the client_credentials token
+
+  # Sensitive values. The real value lives as a Cloud Manager secret; the
+  # ${{...}} reference points at it. Never put secret values in `configs`.
+  secrets:
+    - key: SESSION_SECRET
+      value: ${{DOCKET_SESSION_SECRET}}
+    - key: IMS_CLIENT_SECRET
+      value: ${{DOCKET_IMS_CLIENT_SECRET}}
+    # Optional: uncomment if the aem.live origin requires an authentication token.
+    # - key: ORIGIN_AUTHENTICATION
+    #   value: ${{DOCKET_ORIGIN_AUTHENTICATION}}

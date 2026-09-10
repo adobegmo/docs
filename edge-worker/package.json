@@ -1,0 +1,22 @@
+{
+  "name": "docket-auth-edge-worker",
+  "description": "AEM Edge Function (Fastly Compute) providing all-or-nothing site authentication.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "serve": "aio aem edge-functions serve",
+    "build": "aio aem edge-functions build",
+    "deploy": "aio aem edge-functions deploy docket-auth",
+    "tail": "aio aem edge-functions tail-logs docket-auth",
+    "test": "mocha"
+  },
+  "dependencies": {
+    "@fastly/js-compute": "3.42.1"
+  },
+  "devDependencies": {
+    "mocha": "12.0.0-beta-9.2"
+  },
+  "overrides": {
+    "esbuild": ">=0.28.1"
+  }
+}

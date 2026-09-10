@@ -7,7 +7,7 @@ const EXP_ICON = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xm
 
 const { codeBase } = getConfig();
 
-function generateSiteList(siteData, pathname) {
+export function generateSiteList(siteData, pathname) {
   // Sort siblings by navOrder
   const sortedKeys = Object.keys(siteData).sort((a, b) => {
     const orderA = siteData[a].navOrder;
@@ -52,7 +52,7 @@ function generateSiteList(siteData, pathname) {
   });
 }
 
-function formatSiteData(pageData) {
+export function formatSiteData(pageData) {
   const root = pageData.reduce((acc, item) => {
     const segments = item.path.substring(1).split('/');
 
