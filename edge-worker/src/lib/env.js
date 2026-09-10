@@ -60,5 +60,16 @@ export const loadEnv = async () => {
     if (value != null && value !== '') { env[key] = value; }
   }));
 
+  // IMS_CLIENT_SECRET is stored base64-encoded: the Adobe CDN config generator
+  // (SKYOPS-157895) mangles a secret value containing YAML/HTML-special characters
+  // (& " { } : ...), which Adobe OAuth secrets commonly do, leaving it empty at
+  // runtime. base64 has none of those, so it survives; we decode it back here.
+  // SESSION_SECRET is our own hex, so it needs no encoding. Revert once the CLI
+  // ships the fix. atob throws on a non-base64 value (e.g. a raw local secret),
+  // in which case we leave it as-is.
+  if (env.IMS_CLIENT_SECRET) {
+    try { env.IMS_CLIENT_SECRET = atob(env.IMS_CLIENT_SECRET.trim()); } catch { /* leave raw */ }
+  }
+
   return env;
 };
