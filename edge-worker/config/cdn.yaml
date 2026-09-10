@@ -18,7 +18,7 @@ data:
       - name: gate-red-preview
         when:
           reqProperty: domain
-          equals: "preview.red.adobe.com"
+          equals: "test.red.adobe.com"
         action:
           type: selectAemOrigin
           originName: edgefunction-docket-auth
