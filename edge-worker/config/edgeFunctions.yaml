@@ -21,11 +21,11 @@ data:
     - key: IMS_ENV
       value: "prod"               # prod | stage | dev (selects the IMS host + imslib env)
     - key: IMS_CLIENT_ID_PUBLIC
-      value: "<public-oauth-client-id>"   # browser sign-in + IMS profile call
+      value: "adobegmo"   # browser sign-in + IMS profile call
     - key: IMS_CLIENT_ID
-      value: "<service-client-id>"        # confidential client_credentials identity (DA read)
+      value: "1ff3f2543d454d1e97e500d7dfd9ba94"        # confidential client_credentials identity (DA read)
     - key: IMS_SCOPE
-      value: "<service-scopes>"           # scopes for the client_credentials token
+      value: "AdobeID,openid"           # scopes for the client_credentials token
 
   # Sensitive values. The real value lives as a Cloud Manager secret; the
   # ${{...}} reference points at it. Never put secret values in `configs`.
