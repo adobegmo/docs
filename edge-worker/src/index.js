@@ -19,7 +19,7 @@
 import { loadEnv } from './lib/env.js';
 import { resolveSite } from './lib/sites.js';
 import { readSession, DEFAULT_SESSION_COOKIE_NAME } from './lib/session.js';
-import { createSession, deleteSession } from './handlers/auth.js';
+import { createSession, deleteSession, logout } from './handlers/auth.js';
 import { proxyToAem } from './handlers/proxy.js';
 import { renderLoginPage } from './login.js';
 
@@ -27,6 +27,7 @@ import { renderLoginPage } from './login.js';
 // would resolve '/auth/constructor'-shaped lookups off the prototype.
 const AUTH_ENDPOINTS = new Map([
   ['/auth/session', { POST: createSession, DELETE: deleteSession }],
+  ['/auth/logout', { GET: logout }],
 ]);
 
 const isAuthPath = (path) => path === '/auth' || path.startsWith('/auth/');

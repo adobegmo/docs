@@ -256,3 +256,24 @@ export const deleteSession = async ({ url, env, request }) => {
   headers.append('set-cookie', hintCookie);
   return new Response(null, { status: 204, headers });
 };
+
+// A GET logout for reliable top-level navigation: clears the session cookies
+// server-side on the navigation response and 302s to the login page. The site's
+// cross-tab reconciliation navigates here so cookie clearing does not depend on a
+// fetch/reload race (the browser reliably applies Set-Cookie on a navigation).
+// No CSRF check - it only clears cookies and redirects.
+export const logout = ({ url }) => {
+  const secure = url.protocol === 'https:';
+  const headers = new Headers({ 'cache-control': 'no-store', location: '/' });
+  headers.append('set-cookie', serializeCookie(DEFAULT_SESSION_COOKIE_NAME, '', {
+    maxAgeSeconds: 0,
+    httpOnly: true,
+    secure,
+  }));
+  headers.append('set-cookie', serializeCookie(DEFAULT_SESSION_HINT_COOKIE_NAME, '', {
+    maxAgeSeconds: 0,
+    httpOnly: false,
+    secure,
+  }));
+  return new Response(null, { status: 302, headers });
+};

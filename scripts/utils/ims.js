@@ -22,10 +22,8 @@ const IMS_SCOPES = 'AdobeID,openid';
 // Set just before an explicit sign-in redirect so the return can reload once into
 // the authenticated view. sessionStorage survives the IMS round-trip.
 const SIGN_IN_RELOAD = 'docket-ims-signin-reload';
-// One-shot per-tab guards for the two silent reconciliation reloads, keyed
-// separately so establishing and tearing down never suppress each other.
+// One-shot per-tab guard for the silent establish reload below.
 const ESTABLISH_RELOAD = 'docket-ims-establish-reload';
-const TEARDOWN_RELOAD = 'docket-ims-teardown-reload';
 
 // How long before the stored expiry we start refreshing the session again.
 const SESSION_REFRESH_WINDOW_MS = 60 * 60 * 1000;
@@ -182,14 +180,15 @@ export const loadIms = (() => {
           }
           loadDetails(accessToken).then((details) => resolve(details));
         } else if (readHintExpiry() !== null) {
-          // IMS signed out but the worker session lingers (e.g. signed out of
-          // adobe.com elsewhere): tear it down and reload into the login page.
-          await fetch('/auth/session', { method: 'DELETE', credentials: 'include' }).catch(() => {});
-          if (reloadOnce(TEARDOWN_RELOAD)) {
-            clearTimeout(timeout);
-            return;
-          }
-          resolve({ anonymous: true });
+          // IMS is signed out but the worker session cookie lingers (e.g. signed
+          // out of adobe.com elsewhere). Navigate to the worker's logout, which
+          // clears the cookies server-side (reliable on a top-level navigation)
+          // and 302s to the login page. A same-origin GET, so no IMS redirect-uri
+          // registration is needed; no reload loop (the login page is served once
+          // the cookie is gone, and it does not run this script).
+          clearTimeout(timeout);
+          window.location.assign('/auth/logout');
+          return;
         } else {
           resolve({ anonymous: true });
         }

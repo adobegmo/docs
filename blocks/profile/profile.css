@@ -1,6 +1,8 @@
 .profile {
   display: flex;
   align-items: center;
+  /* space between the header action icons and the profile control */
+  margin-left: var(--spacing-l);
 }
 
 .profile button {
