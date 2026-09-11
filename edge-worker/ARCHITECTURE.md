@@ -162,14 +162,34 @@ entry **and** a per-host rule in `cdn.yaml`, then re-run the config pipeline.
 
 ## Deployment
 
-- **Config** (`edgeFunctions.yaml` + `cdn.yaml`): deployed by a Cloud Manager
-  **Edge Delivery config pipeline** reading this repo's `main`, code location
-  `/edge-worker/config`. Re-run it after any config/secret change.
-- **Worker code**: `aio aem edge-functions build && aio aem edge-functions deploy docket-auth`
-  (needs the Deployment Manager role; **not** part of BYOG site-code sync).
+The worker runs in **more than one Cloud Manager program** — one per gated site
+family, each with its own config pipeline, secrets, and compute deployment. The
+targets are listed in `deploy-targets.json`:
+
+| target | program | pipeline | domain |
+| --- | --- | --- | --- |
+| `red` | 223257 | 58562245 | test.red.adobe.com |
+| `writing` | 223466 | 58649449 | test.writing.adobe.com |
+
+Each program needs the **full stack** independently (config pipeline run +
+`DOCKET_SESSION_SECRET` + compute deploy). The single shared repo still drives
+them all: the `SITES` map and `cdn.yaml` list *every* host, and a rule for a host
+not registered in a given program is simply a no-op there.
+
+- **Config** (`edgeFunctions.yaml` + `cdn.yaml`): deployed by each program's Cloud
+  Manager **Edge Delivery config pipeline** reading this repo's `main`, code
+  location `/edge-worker/config`. Re-run it after any config/secret change.
+- **Worker code**: deploy with the target-scoped wrapper so one program's code can
+  never be cross-deployed into another — `npm run deploy:red` /
+  `npm run deploy:writing` (both call `./deploy.sh <target>`, which rewrites `.aio`
+  for that program, then builds + `aio aem edge-functions deploy docket-auth`).
+  Needs the Deployment Manager role; **not** part of BYOG site-code sync. `.aio`
+  holds only one context, so raw `npm run deploy` / `npm run tail` act on whatever
+  it last pointed at — prefer the scoped scripts.
 - **Site code** (`scripts/`, `blocks/`): pushed to `main` and served by AEM Code
   Sync at `main--<site>--<org>` (the tier the worker proxies) — no pipeline.
-- **Secret values**: Cloud Manager **pipeline variables** referenced via `${{…}}`.
+- **Secret values**: Cloud Manager **pipeline variables** referenced via `${{…}}`,
+  set per program.
 
 ## Workarounds we had to apply
 
@@ -236,8 +256,15 @@ Sign-out **does** propagate from IMS to the site, via client-side reconciliation
 
 ## Common operations
 
-- **Add a gated site:** add a `SITES` entry (regenerate the base64) + a per-host
-  rule in `cdn.yaml`; re-run the config pipeline.
+- **Add a gated site (existing program):** add a `SITES` entry (regenerate the
+  base64) + a per-host rule in `cdn.yaml`; re-run that program's config pipeline.
+  No compute redeploy — the running function is already multi-site.
+- **Add a gated site in a NEW program:** the config edits above (they live in the
+  shared repo), **plus** register the Edge Delivery site + domain + SSL, set
+  `DOCKET_SESSION_SECRET` on the new pipeline, add the target to
+  `deploy-targets.json`, and run `./deploy.sh <target>` to deploy the compute
+  code. Also add the host to the `adobegmo` IMS client (redirect URIs + CORS) and
+  grant the confidential account da.live read on the new site.
 - **Update the visitors allowlist:** edit the `visitors` sheet in the site's
   da.live config — no deploy needed (read live per login).
 - **Rotate secrets:** regenerate the `APP_SECRETS` base64 blob, re-set

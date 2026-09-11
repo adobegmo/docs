@@ -36,8 +36,10 @@ stripping, and query-index filtering are intentionally dropped.
 | `src/lib/env.js` | Reads config store + secret store into a plain env object |
 | `src/lib/secrets.js` | Secret store accessor (from the AEM boilerplate) |
 | `config/edgeFunctions.yaml` | Declares the function, configs, and secret references |
-| `config/cdn.yaml` | CDN routing: all paths → this function |
+| `config/cdn.yaml` | CDN routing: per-host rule → this function |
 | `fastly.toml` | Local dev only: backends + local config/secret stores |
+| `deploy.sh` | Target-scoped deploy wrapper (rewrites `.aio` per program, then build + deploy) |
+| `deploy-targets.json` | Program / pipeline / domain for each deploy target |
 
 ## Configuration
 
@@ -78,7 +80,11 @@ per-site (each site's own da.live config).
    da.live config.
 3. A `visitors` sheet in the site's da.live config with an `email` column,
    populated with allowed addresses / `@domain` wildcards.
-4. Cloud Manager secrets `DOCKET_SESSION_SECRET` and `DOCKET_IMS_CLIENT_SECRET`.
+4. Cloud Manager secret `DOCKET_SESSION_SECRET` — a base64-encoded JSON bundle
+   `{ "SESSION_SECRET": "<hex>", "IMS_CLIENT_SECRET": "<ims-secret>" }` carrying
+   both real secrets in one variable (see the SKYOPS-157895 workaround note in
+   `config/edgeFunctions.yaml`; a second `${{...}}` secret resolves empty in the
+   CDN config generator, so `DOCKET_IMS_CLIENT_SECRET` is no longer used).
 
 ## Local development
 
@@ -109,15 +115,28 @@ aio login
 aio aem edge-functions setup        # writes the .aio context
 
 npm run build                       # aio aem edge-functions build
-npm run deploy                      # aio aem edge-functions deploy docket-auth
-npm run tail                        # stream runtime logs
+npm run deploy:red                  # ./deploy.sh red     → program 223257
+npm run deploy:writing              # ./deploy.sh writing → program 223466
+npm run tail                        # stream logs (from whatever .aio points at)
 ```
 
-In Cloud Manager, add this repo under **Repositories**, then create an **Edge
-Delivery configuration pipeline** whose Source Code step points at this repo, the
-`main` branch, and **`/edge-worker/config`** as the *Code Location* (the pipeline
-lets you pick a subfolder). Running it deploys `edgeFunctions.yaml` + `cdn.yaml`.
+The worker runs in **more than one Cloud Manager program** (one per gated site
+family — see `deploy-targets.json`). `aio aem edge-functions deploy` has no
+program flag; it targets whatever `.aio` holds. So deploy via the target-scoped
+scripts above — `deploy.sh` rewrites `.aio` for the named program before every
+build+deploy, so you can't cross-deploy one site's code into another. Raw
+`npm run deploy` still works but acts on whatever `.aio` last pointed at.
 
-To gate an **additional** site later: add a `SITES` entry in `edgeFunctions.yaml`
-**and** a matching per-host rule in `cdn.yaml`, then re-run the config pipeline
-(no function code change or redeploy needed).
+In Cloud Manager, add this repo under **Repositories**, then create — **per
+program** — an **Edge Delivery configuration pipeline** whose Source Code step
+points at this repo, the `main` branch, and **`/edge-worker/config`** as the *Code
+Location* (the pipeline lets you pick a subfolder). Running it deploys
+`edgeFunctions.yaml` + `cdn.yaml`.
+
+To gate an **additional** site: add a `SITES` entry in `edgeFunctions.yaml` **and**
+a matching per-host rule in `cdn.yaml`. If the site lives in an **existing**
+program, just re-run that program's config pipeline (no code redeploy — the
+function is multi-site). If it needs a **new** program, also register its Edge
+Delivery site/domain/SSL, set `DOCKET_SESSION_SECRET` on the new pipeline, add a
+target to `deploy-targets.json`, and `./deploy.sh <target>`. See
+`ARCHITECTURE.md` → *Common operations*.
