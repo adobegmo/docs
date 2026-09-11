@@ -35,10 +35,14 @@ data:
   # Sensitive values. The real value lives as a Cloud Manager secret; the
   # ${{...}} reference points at it. Never put secret values in `configs`.
   secrets:
-    - key: SESSION_SECRET
-      value: ${{DOCKET_SESSION_SECRET}}
+    # DIAGNOSTIC (SKYOPS): order swapped to test whether only the FIRST ${{...}}
+    # secret reference resolves. If SESSION_SECRET (now second) comes back empty
+    # and IMS_CLIENT_SECRET (now first) resolves, that confirms an order-dependent
+    # secret-substitution bug in the config generator.
     - key: IMS_CLIENT_SECRET
       value: ${{DOCKET_IMS_CLIENT_SECRET}}
+    - key: SESSION_SECRET
+      value: ${{DOCKET_SESSION_SECRET}}
     # Optional: uncomment if the aem.live origin requires an authentication token.
     # - key: ORIGIN_AUTHENTICATION
     #   value: ${{DOCKET_ORIGIN_AUTHENTICATION}}
