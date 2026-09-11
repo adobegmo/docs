@@ -23,3 +23,11 @@ data:
           type: selectAemOrigin
           originName: edgefunction-docket-auth
           skipCache: true
+      - name: gate-writing-preview
+        when:
+          reqProperty: domain
+          equals: "test.writing.adobe.com"
+        action:
+          type: selectAemOrigin
+          originName: edgefunction-docket-auth
+          skipCache: true

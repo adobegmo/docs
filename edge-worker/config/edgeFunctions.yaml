@@ -17,10 +17,11 @@ data:
     # in src/lib/sites.js (parseSites). Regenerate after changing sites with:
     #   node -e 'console.log(Buffer.from(JSON.stringify(MAP)).toString("base64"))'
     # Decoded value below is:
-    #   { "test.red.adobe.com": { "org": "adobegmo", "site": "red" } }
+    #   { "test.red.adobe.com":     { "org": "adobegmo", "site": "red" },
+    #     "test.writing.adobe.com": { "org": "adobegmo", "site": "writing" } }
     # Revert to raw JSON once SKYOPS-157895 ships (the parser accepts either).
     - key: SITES
-      value: "eyJ0ZXN0LnJlZC5hZG9iZS5jb20iOnsib3JnIjoiYWRvYmVnbW8iLCJzaXRlIjoicmVkIn19"
+      value: "eyJ0ZXN0LnJlZC5hZG9iZS5jb20iOnsib3JnIjoiYWRvYmVnbW8iLCJzaXRlIjoicmVkIn0sInRlc3Qud3JpdGluZy5hZG9iZS5jb20iOnsib3JnIjoiYWRvYmVnbW8iLCJzaXRlIjoid3JpdGluZyJ9fQ=="
     - key: AEM_HOST_SUFFIX
       value: "aem.page"           # default AEM tier: aem.live (published) or aem.page (preview)
     - key: IMS_ENV
