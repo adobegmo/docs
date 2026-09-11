@@ -35,14 +35,13 @@ data:
   # Sensitive values. The real value lives as a Cloud Manager secret; the
   # ${{...}} reference points at it. Never put secret values in `configs`.
   secrets:
-    # DIAGNOSTIC (SKYOPS): order swapped to test whether only the FIRST ${{...}}
-    # secret reference resolves. If SESSION_SECRET (now second) comes back empty
-    # and IMS_CLIENT_SECRET (now first) resolves, that confirms an order-dependent
-    # secret-substitution bug in the config generator.
-    - key: IMS_CLIENT_SECRET
-      value: ${{DOCKET_IMS_CLIENT_SECRET}}
-    - key: SESSION_SECRET
+    # WORKAROUND: a second ${{...}} secret variable resolves EMPTY in the Adobe CDN
+    # config generator (confirmed: DOCKET_IMS_CLIENT_SECRET, set non-empty, arrives
+    # empty in the secret bundle regardless of order, while DOCKET_SESSION_SECRET
+    # resolves fine). So both real secrets are packed into the ONE working variable
+    # as a base64 JSON bundle and split in src/lib/env.js. Build + set with:
+    #   node -e 'console.log(Buffer.from(JSON.stringify({SESSION_SECRET:"<hex>",IMS_CLIENT_SECRET:"<ims-secret>"})).toString("base64"))'
+    #   aio cloudmanager:set-pipeline-variables 58562245 --programId 223257 --secret DOCKET_SESSION_SECRET "<base64>"
+    # Revert to two separate secret variables once the pipeline bug is fixed.
+    - key: APP_SECRETS
       value: ${{DOCKET_SESSION_SECRET}}
-    # Optional: uncomment if the aem.live origin requires an authentication token.
-    # - key: ORIGIN_AUTHENTICATION
-    #   value: ${{DOCKET_ORIGIN_AUTHENTICATION}}
