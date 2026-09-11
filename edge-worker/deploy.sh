@@ -46,6 +46,8 @@ cat > .aio <<EOF
 EOF
 
 aio aem edge-functions build
-aio aem edge-functions deploy docket-auth
+# -f: always deploy even if the CLI thinks the package hash is unchanged. The
+# hash check has skipped genuine changes here, so force to be safe.
+aio aem edge-functions deploy docket-auth -f
 
 echo "✓ docket-auth deployed to program $PROGRAM ($SITE)"
