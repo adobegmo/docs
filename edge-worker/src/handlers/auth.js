@@ -26,7 +26,6 @@ import {
 import { decodeJwt } from '../lib/jwt.js';
 import { isVisitorAllowed } from '../lib/allowlist.js';
 import { isKnownOriginHost } from '../lib/sites.js';
-import { SecretStoreManager } from '../lib/secrets.js';
 
 const IMS_PROFILE_URL = {
   dev: 'https://ims-na1-stg1.adobelogin.com/ims/profile/v1',
@@ -142,11 +141,7 @@ export const createSession = async ({ url, env, request, site }) => {
   // one is a deploy mistake, not a caller error - surface it as 500 rather than
   // letting it collapse into the 502 "DA unreachable" path.
   if (!env.IMS_CLIENT_ID || !env.IMS_CLIENT_SECRET || !env.IMS_SCOPE) {
-    // TEMP: name the missing key(s) + secret-store contents in the body so it
-    // shows in the Network tab (tail-logs is unreliable here).
-    const missing = ['IMS_CLIENT_ID', 'IMS_CLIENT_SECRET', 'IMS_SCOPE'].filter((k) => !env[k]);
-    const store = await SecretStoreManager.debugInfo();
-    return problem(500, `Visitor authorization is not configured (missing: ${missing.join(', ')}; ${store})`);
+    return problem(500, 'Visitor authorization is not configured');
   }
 
   if (!env.IMS_CLIENT_ID_PUBLIC) {

@@ -17,7 +17,7 @@
  */
 
 import { loadEnv } from './lib/env.js';
-import { resolveSite, parseSites } from './lib/sites.js';
+import { resolveSite } from './lib/sites.js';
 import { readSession, DEFAULT_SESSION_COOKIE_NAME } from './lib/session.js';
 import { createSession, deleteSession } from './handlers/auth.js';
 import { proxyToAem } from './handlers/proxy.js';
@@ -103,24 +103,6 @@ async function handleRequest(event) {
     // Resolve which site this request targets from its host (repoless: one code
     // base, many sites). Threaded into the auth + proxy handlers.
     const site = resolveSiteFromRequest(env, request, url);
-    // TEMP DIAGNOSTIC (remove once resolution is confirmed): shows which host
-    // candidate matched (or none) and whether SITES decoded. No secrets logged.
-    console.log(JSON.stringify({
-      msg: 'site-resolve',
-      matched: site ? site.host : null,
-      urlHost: url.host,
-      xForwardedHost: request.headers.get('x-forwarded-host'),
-      hostHeader: request.headers.get('host'),
-      siteKeys: Object.keys(parseSites(env)),
-      // presence only (never the values) - shows which env var is empty at runtime
-      present: {
-        SESSION_SECRET: !!env.SESSION_SECRET,
-        IMS_CLIENT_ID: !!env.IMS_CLIENT_ID,
-        IMS_CLIENT_SECRET: !!env.IMS_CLIENT_SECRET,
-        IMS_SCOPE: !!env.IMS_SCOPE,
-        IMS_CLIENT_ID_PUBLIC: !!env.IMS_CLIENT_ID_PUBLIC,
-      },
-    }));
 
     if (isAuthPath(url.pathname)) {
       return await handleAuth({ url, env, request, site });

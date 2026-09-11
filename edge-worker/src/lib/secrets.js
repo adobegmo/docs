@@ -63,25 +63,4 @@ export class SecretStoreManager {
     const instance = SecretStoreManager.getInstance();
     return instance.getSecret(key);
   }
-
-  // TEMP diagnostic: which keys the deployed secret bundle actually contains, and
-  // whether an individual IMS_CLIENT_SECRET entry exists. Keys only, no values.
-  static async debugInfo() {
-    const instance = SecretStoreManager.getInstance();
-    if (!instance.store) { instance.store = new SecretStore('secret_default'); }
-    let bundleKeys = '<no-bundle>';
-    try {
-      const entry = await instance.store.get('secrets');
-      if (entry) { bundleKeys = Object.keys(JSON.parse(entry.plaintext())).join('|'); }
-    } catch {
-      bundleKeys = '<bundle-error>';
-    }
-    let individual = false;
-    try {
-      individual = !!(await instance.store.get('IMS_CLIENT_SECRET'));
-    } catch {
-      individual = false;
-    }
-    return `bundle=[${bundleKeys}] individualImsSecret=${individual}`;
-  }
 }

@@ -1,4 +1,4 @@
-import { getConfig, getMetadata } from '../../scripts/ak.js';
+import { getConfig, getMetadata, loadBlock } from '../../scripts/ak.js';
 import getSvg from '../../scripts/utils/svg.js';
 import { loadFragment } from '../fragment/fragment.js';
 
@@ -53,6 +53,14 @@ async function decorateActions(section) {
   const discord = decorateLink(section, 'discord.com', 'discord');
   const github = decorateLink(section, 'github.com', 'github');
   await Promise.all([color, discord, github]);
+
+  // Profile / sign-out menu (imslib). Mounted as its own block (lazy JS + CSS).
+  // Deliberately NOT awaited: imslib can take up to its timeout to resolve, and
+  // the header must not wait on it to render.
+  const profile = document.createElement('div');
+  profile.className = 'profile';
+  section.append(profile);
+  loadBlock(profile);
 }
 
 async function decorateHeader(fragment) {

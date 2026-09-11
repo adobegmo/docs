@@ -9,67 +9,31 @@
 
 /*
  * The self-contained login screen the edge function returns for any request
- * without a valid session.
+ * without a valid session. It loads Adobe imslib, signs the user in against IMS,
+ * then POSTs the access token to /auth/session; on success the page reloads and
+ * the (now authenticated) request is proxied to the real site. A 403 from
+ * /auth/session means signed-in-but-not-on-the-allowlist.
  *
- * It runs the Adobe IMS OAuth *implicit* flow WITHOUT imslib: a full-page
- * redirect to /ims/authorize/v2 (response_type=token) and reading the returned
- * access token from our own URL fragment. Both are same-origin operations, so -
- * unlike imslib, which makes cross-origin XHRs to /ims/check that require the
- * origin to be on the client's CORS allowlist - this needs only a registered
- * redirect_uri. The token is then POSTed to /auth/session, where the worker
- * validates it server-side (the real security boundary) and mints the cookie.
+ * The page is self-contained (inline script + imslib from Adobe's CDN) because
+ * every site asset is gated too - the login page cannot import site JS/CSS.
  */
 
+import { imslibEnvironment } from './lib/sites.js';
+
+const IMS_URL = 'https://auth.services.adobe.com/imslib/imslib.min.js';
 const IMS_SCOPES = 'AdobeID,openid';
 
-// Authorize endpoint host per IMS environment.
-const IMS_HOST = {
-  dev: 'https://ims-na1-stg1.adobelogin.com',
-  stage: 'https://ims-na1-stg1.adobelogin.com',
-  prod: 'https://ims-na1.adobelogin.com',
-};
-
-// The client-side script, as a template. Only the client id and IMS host are
-// interpolated - both from trusted server config, never from the request.
-const clientScript = (clientId, imsHost) => `
+// The client-side script, as a template. Only the client id and imslib
+// environment are interpolated - both from trusted server config, never the
+// request, so there is no user input to escape.
+const clientScript = (clientId, environment) => `
   const NOT_AUTHORIZED = 'notauth';
-  const SCOPES = '${IMS_SCOPES}';
-  const CLIENT_ID = '${clientId}';
-  const IMS_HOST = '${imsHost}';
-  const STATE_KEY = 'docket-oauth-state';
-  const RETURN_KEY = 'docket-return-to';
-
   const showSignIn = () => { document.getElementById('signin').hidden = false; };
   const showMessage = (kind, text) => {
     const el = document.getElementById('status');
     el.className = 'status ' + kind;
     el.textContent = text;
     el.hidden = false;
-  };
-
-  const randomState = () => {
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-  };
-
-  // Full-page redirect to IMS (implicit grant). A navigation is not a CORS
-  // request, so this needs only a registered redirect_uri - no allowed-origins on
-  // the client. 'prompt' lets the "different account" button force re-auth.
-  const signIn = (prompt) => {
-    const state = randomState();
-    sessionStorage.setItem(STATE_KEY, state);
-    sessionStorage.setItem(RETURN_KEY, window.location.pathname + window.location.search);
-    const params = new URLSearchParams({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      response_type: 'token',
-      redirect_uri: window.location.origin + '/',
-      locale: 'en_US',
-      state,
-    });
-    if (prompt) { params.set('prompt', prompt); }
-    window.location.assign(IMS_HOST + '/ims/authorize/v2?' + params.toString());
   };
 
   async function establishSession(token) {
@@ -81,9 +45,9 @@ const clientScript = (clientId, imsHost) => `
         body: JSON.stringify({ access_token: token }),
       });
       if (resp.status === 200) {
-        const back = sessionStorage.getItem(RETURN_KEY) || '/';
-        sessionStorage.removeItem(RETURN_KEY);
-        window.location.replace(back);
+        // Reload without the IMS token fragment so it does not linger in history;
+        // the reload is now served the proxied site (the cookie is set).
+        window.location.replace(window.location.pathname + window.location.search);
         return;
       }
       if (resp.status === 403) {
@@ -97,38 +61,47 @@ const clientScript = (clientId, imsHost) => `
     }
   }
 
-  document.getElementById('signin').addEventListener('click', () => signIn());
-  document.getElementById('switch').addEventListener('click', () => signIn('select_account'));
+  window.adobeid = {
+    client_id: '${clientId}',
+    scope: '${IMS_SCOPES}',
+    locale: 'en_US',
+    // imslib validates the token via /ims/check (cross-origin), which the IMS
+    // client's CORS allowlist now permits. The worker also validates the token
+    // server-side in /auth/session, so this is defense in depth.
+    autoValidateToken: true,
+    environment: '${environment}',
+    useLocalStorage: true,
+    onError: () => { showSignIn(); },
+    onReady: () => {
+      // A token here means either a fresh sign-in return OR a silent re-auth for a
+      // user already signed in to IMS - both establish the session with no click.
+      const accessToken = window.adobeIMS && window.adobeIMS.getAccessToken();
+      if (accessToken && accessToken.token) {
+        establishSession(accessToken.token);
+      } else {
+        showSignIn();
+      }
+    },
+  };
 
-  // On return from IMS the token is in the URL fragment. Reading our own hash and
-  // POSTing to our own /auth/session are same-origin - no CORS, no imslib.
-  (function handleReturn() {
-    const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
-    const frag = new URLSearchParams(hash);
-    if (frag.get('error')) {
-      showMessage('error', 'Sign-in was cancelled or failed. Please try again.');
-      showSignIn();
-      return;
-    }
-    const token = frag.get('access_token');
-    if (!token) { showSignIn(); return; }
-    const returnedState = frag.get('state');
-    const expected = sessionStorage.getItem(STATE_KEY);
-    sessionStorage.removeItem(STATE_KEY);
-    // Strip the token from the URL immediately (out of the address bar/history).
-    history.replaceState(null, '', window.location.pathname + window.location.search);
-    if (!expected || returnedState !== expected) {
-      showMessage('error', 'Sign-in could not be verified. Please try again.');
-      showSignIn();
-      return;
-    }
-    establishSession(token);
-  }());
+  document.getElementById('signin').addEventListener('click', () => {
+    window.adobeIMS.signIn();
+  });
+  document.getElementById('switch').addEventListener('click', () => {
+    window.adobeIMS.signOut({ redirect_uri: window.location.href });
+  });
+
+  // imslib reads window.adobeid on load, so append it only after the config above
+  // is in place - hence a dynamic script rather than a static tag.
+  const imslib = document.createElement('script');
+  imslib.src = '${IMS_URL}';
+  imslib.onerror = () => showSignIn();
+  document.head.appendChild(imslib);
 `;
 
 export const renderLoginPage = (env, status = 401) => {
   const clientId = env.IMS_CLIENT_ID_PUBLIC || '';
-  const imsHost = IMS_HOST[env.IMS_ENV] ?? IMS_HOST.prod;
+  const environment = imslibEnvironment(env.IMS_ENV);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -177,7 +150,7 @@ export const renderLoginPage = (env, status = 401) => {
     <button id="signin" type="button" hidden>Sign in</button>
     <button id="switch" type="button" hidden>Sign in with a different account</button>
   </main>
-  <script>${clientScript(clientId, imsHost)}</script>
+  <script>${clientScript(clientId, environment)}</script>
 </body>
 </html>`;
 
