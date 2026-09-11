@@ -90,6 +90,19 @@ export function formatSiteData(pageData) {
 
 async function fetchSiteData() {
   const resp = await fetch(`${codeBase}/query-index.json?t=${Date.now()}`);
+  // A 401 here is the edge worker rejecting a gated request - our session is gone
+  // (e.g. signed out of adobe.com in another tab, or the session expired). This
+  // fetch runs on every navigation and is cache-busted, so it's a reliable, early
+  // logged-out signal. Go to the worker logout, which clears any lingering cookie
+  // and serves the login page; the login page's imslib then silently re-auths if
+  // the user is in fact still signed in to IMS. No separate IMS check is needed -
+  // the 401 is the authoritative "logged out" signal from the worker.
+  if (resp.status === 401) {
+    window.location.assign('/auth/logout');
+    // Never resolve: the navigation unloads the page, so callers must not try to
+    // render a nav from the 401 body in the meantime.
+    return new Promise(() => {});
+  }
   if (!resp.ok) throw Error('Could not fetch query index');
   const { data } = await resp.json();
   return data;
