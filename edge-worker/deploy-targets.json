@@ -1,0 +1,15 @@
+{
+  "orgId": "812B47145DC5A2450A495C14@AdobeOrg",
+  "targets": {
+    "red": {
+      "programId": "223257",
+      "pipelineId": "58562245",
+      "siteDomain": "test.red.adobe.com"
+    },
+    "writing": {
+      "programId": "223466",
+      "pipelineId": "58649449",
+      "siteDomain": "test.writing.adobe.com"
+    }
+  }
+}

@@ -37,26 +37,47 @@ const tryJson = (value) => {
   }
 };
 
+// Un-escapes HTML numeric character entities (e.g. "&#x3D;" -> "=", "&#61;" -> "=").
+// The Adobe CDN config generator's Handlebars template HTML-escapes config values,
+// and Handlebars' default escape set includes "=" -> "&#x3D;" (see decodeSites).
+// Only numeric entities are handled - that is all the escaper emits for base64.
+const unescapeNumericEntities = (s) => s
+  .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(parseInt(d, 10)));
+
+// Decodes the SITES config value into a site map, or null if it cannot.
+//
+// Accepts, in order: raw JSON (local dev / fastly.toml), then base64/base64url of
+// the JSON (the deployed form). The value is base64 to survive SKYOPS-157895 - the
+// CDN config generator crashes on a raw JSON-object config value. But that same
+// Handlebars escaping ALSO rewrites the base64 "=" PADDING to "&#x3D;", so plain
+// atob(raw) failed on the deployed value and every host was denied. So we
+// un-escape numeric entities, normalize base64url, strip padding, and re-pad
+// before atob - robust to the mangling with no change to the stored value. Revert
+// to a plain raw/atob path once SKYOPS-157895 ships; this keeps working either way.
+const decodeSites = (value) => {
+  const trimmed = String(value).trim();
+  const asJson = tryJson(trimmed);
+  if (asJson !== null) { return asJson; }
+
+  const normalized = unescapeNumericEntities(trimmed)
+    .replace(/\s+/g, '')
+    .replace(/-/g, '+') // base64url -> base64
+    .replace(/_/g, '/')
+    .replace(/=+$/g, ''); // drop padding (escaped or literal) so we can re-add it
+  let padded = normalized;
+  while (padded.length % 4 !== 0) { padded += '='; }
+
+  let decoded = null;
+  try { decoded = atob(padded); } catch { decoded = null; }
+  return decoded === null ? null : tryJson(decoded);
+};
+
 // Parses the SITES config once into a plain map. Any missing / malformed value
 // yields an empty map, which denies every host - fail closed by construction.
-//
-// The DEPLOYED value is base64-encoded JSON, not raw JSON: the Adobe CDN config
-// generator (SKYOPS-157895) crashes when a data.configs value is a JSON-object
-// string - its Handlebars template re-emits the value unquoted and HTML-escaped,
-// so the `{ } " :` (and the escaped `&quot;`) break the generator's own YAML
-// parse and the whole CDN config fails to deploy. Encoding to base64 - which has
-// no YAML/HTML-significant characters - sidesteps that. Local dev (fastly.toml)
-// may still use raw JSON, so we try raw first, then base64-decode. Revert to raw
-// JSON once SKYOPS-157895 ships; this parser keeps working either way.
 export const parseSites = (env) => {
   const raw = env?.SITES ?? '{}';
-  let result = tryJson(raw);
-  if (result === null) {
-    let decoded = null;
-    try { decoded = atob(raw); } catch { decoded = null; }
-    if (decoded !== null) { result = tryJson(decoded); }
-  }
-  return result ?? {};
+  return decodeSites(raw) ?? {};
 };
 
 // Resolves the target site for a request host, or null when the host is not a

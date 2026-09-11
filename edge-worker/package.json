@@ -7,6 +7,8 @@
     "serve": "aio aem edge-functions serve",
     "build": "aio aem edge-functions build",
     "deploy": "aio aem edge-functions deploy docket-auth",
+    "deploy:red": "./deploy.sh red",
+    "deploy:writing": "./deploy.sh writing",
     "tail": "aio aem edge-functions tail-logs docket-auth",
     "test": "mocha"
   },
