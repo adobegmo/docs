@@ -109,9 +109,31 @@ aio login
 aio aem edge-functions setup        # writes the .aio context
 
 npm run build                       # aio aem edge-functions build
-npm run deploy                      # aio aem edge-functions deploy docket-auth
+npm run deploy                      # aio aem edge-functions deploy docket-auth (current .aio target)
 npm run tail                        # stream runtime logs
 ```
+
+### Choosing a deploy target (multi-site)
+
+`aio aem edge-functions deploy` has **no `--program` flag** — it deploys to
+whichever Cloud Manager org/program is recorded in the local **`.aio`** context
+file. Because this is a repoless/multi-site setup (one code base fronts several
+sites, each its own Cloud Manager program), deploying to a specific site means
+pointing `.aio` at that site first. The active `.aio` is gitignored; one
+committed **`.aio.<name>`** template per site records each site's org/program:
+
+| Site | Command |
+| --- | --- |
+| `test.red.adobe.com` (program 223257) | `npm run deploy:red` |
+| `test.writing.adobe.com` (program 223466) | `npm run deploy:writing` |
+
+Each `deploy:<name>` swaps `.aio` to that site's template, then builds and
+deploys. `npm run tail:red` / `tail:writing` stream logs from the matching
+target. To switch context without deploying: `npm run context:use -- <name>`.
+
+**Onboard a new site's deploy target:** run `aio aem edge-functions setup`
+(pick its org/program/domain), then `npm run context:save -- <name>` to capture
+it as `.aio.<name>`. Commit that template and add a `deploy:<name>` script.
 
 In Cloud Manager, add this repo under **Repositories**, then create an **Edge
 Delivery configuration pipeline** whose Source Code step points at this repo, the

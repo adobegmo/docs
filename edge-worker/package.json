@@ -6,8 +6,14 @@
   "scripts": {
     "serve": "aio aem edge-functions serve",
     "build": "aio aem edge-functions build",
+    "context:use": "sh scripts/aio-context.sh use",
+    "context:save": "sh scripts/aio-context.sh save",
     "deploy": "aio aem edge-functions deploy docket-auth",
+    "deploy:red": "sh scripts/aio-context.sh use red && npm run build && npm run deploy",
+    "deploy:writing": "sh scripts/aio-context.sh use writing && npm run build && npm run deploy",
     "tail": "aio aem edge-functions tail-logs docket-auth",
+    "tail:red": "sh scripts/aio-context.sh use red && aio aem edge-functions tail-logs docket-auth",
+    "tail:writing": "sh scripts/aio-context.sh use writing && aio aem edge-functions tail-logs docket-auth",
     "test": "mocha"
   },
   "dependencies": {
