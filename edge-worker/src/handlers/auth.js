@@ -15,6 +15,7 @@
  * hash is gone (the client POST is a plain JSON fetch).
  */
 
+import { CacheOverride } from 'fastly:cache-override';
 import {
   createSessionCookies,
   serializeCookie,
@@ -26,6 +27,21 @@ import {
 import { decodeJwt } from '../lib/jwt.js';
 import { isVisitorAllowed } from '../lib/allowlist.js';
 import { isKnownOriginHost } from '../lib/sites.js';
+
+// The IMS calls must never be cached: the profile verify is keyed by URL+host
+// (the same client_id for everyone; the per-user bearer token lives in a header,
+// which is not part of Fastly's default cache key), so caching it would serve one
+// user's profile to another. The token mint is a POST. Both bypass the cache.
+const NO_CACHE = new CacheOverride('pass');
+
+// The DA allowlist read is safe to share: it is a GET keyed by the per-site URL,
+// and the visitors list is identical for every user of that site. admin.da.live
+// sets no cache-control headers, so we impose a short TTL ourselves - long enough
+// to collapse a burst of logins into a single DA read, short enough that an
+// allowlist edit takes effect within a minute. (Without this Fastly would apply
+// its ~1h default TTL, and edits would appear to "not take" for up to an hour.)
+const ALLOWLIST_TTL_SECONDS = 60;
+const ALLOWLIST_CACHE = new CacheOverride('override', { ttl: ALLOWLIST_TTL_SECONDS });
 
 const IMS_PROFILE_URL = {
   dev: 'https://ims-na1-stg1.adobelogin.com/ims/profile/v1',
@@ -76,7 +92,10 @@ const problem = (status, message) => new Response(message, {
 // separately (see the try/catch at the call site).
 const fetchImsProfile = async (token, imsEnv, clientId) => {
   const base = IMS_PROFILE_URL[imsEnv] ?? IMS_PROFILE_URL.prod;
-  const resp = await fetch(`${base}?client_id=${clientId}`, { headers: { authorization: `Bearer ${token}` } });
+  const resp = await fetch(`${base}?client_id=${clientId}`, {
+    headers: { authorization: `Bearer ${token}` },
+    cacheOverride: NO_CACHE,
+  });
   if (resp.status === 401 || resp.status === 403) { return { rejected: true }; }
   if (!resp.ok) { throw new Error(`IMS profile request failed with status ${resp.status}`); }
   return { rejected: false, profile: await resp.json() };
@@ -96,6 +115,7 @@ const fetchServiceToken = async (env, imsEnv) => {
       client_secret: env.IMS_CLIENT_SECRET,
       scope: (env.IMS_SCOPE ?? '').replace(/\s+/g, ''),
     }),
+    cacheOverride: NO_CACHE,
   });
   if (!resp.ok) { throw new Error(`IMS token request failed with status ${resp.status}`); }
   const token = (await resp.json())?.access_token;
@@ -110,7 +130,10 @@ const fetchServiceToken = async (env, imsEnv) => {
 // caller must fail closed, never mint a cookie on an unresolved check.
 const fetchVisitorAllowlist = async (env, imsEnv, site) => {
   const token = await fetchServiceToken(env, imsEnv);
-  const resp = await fetch(daConfigUrl(site), { headers: { authorization: `Bearer ${token}` } });
+  const resp = await fetch(daConfigUrl(site), {
+    headers: { authorization: `Bearer ${token}` },
+    cacheOverride: ALLOWLIST_CACHE,
+  });
   if (!resp.ok) { throw new Error(`DA config request failed with status ${resp.status}`); }
   const rows = (await resp.json())?.visitors?.data;
   return Array.isArray(rows) ? rows : [];
