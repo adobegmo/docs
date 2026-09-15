@@ -27,6 +27,18 @@ describe('parseSites', () => {
     const b64 = Buffer.from(SITES).toString('base64');
     assert.deepEqual(parseSites({ SITES: b64 }), JSON.parse(SITES));
   });
+  it('decodes a base64 value whose = padding was HTML-escaped to &#x3D; by the CDN generator', () => {
+    // The deployed config-store value arrives with the base64 padding mangled,
+    // e.g. "...fQ==" -> "...fQ&#x3D;&#x3D;". Must decode identically.
+    const b64 = Buffer.from(SITES).toString('base64');
+    const mangled = b64.replace(/=/g, '&#x3D;');
+    assert.notEqual(mangled, b64);
+    assert.deepEqual(parseSites({ SITES: mangled }), JSON.parse(SITES));
+  });
+  it('decodes even if padding is missing or the value is base64url', () => {
+    const stripped = Buffer.from(SITES).toString('base64').replace(/=+$/, '');
+    assert.deepEqual(parseSites({ SITES: stripped }), JSON.parse(SITES));
+  });
   it('still accepts raw JSON, so local dev and a future CLI fix both work', () => {
     assert.deepEqual(parseSites({ SITES }), JSON.parse(SITES));
   });

@@ -37,6 +37,35 @@ const tryJson = (value) => {
   }
 };
 
+// Un-escapes the numeric HTML entities the Adobe CDN config generator injects
+// into the DEPLOYED config-store value (SKYOPS-157895 second-order bug): even
+// though base64 has no HTML-significant characters, the generator's Handlebars
+// template still HTML-escapes the `=` padding to `&#x3D;`, so a value committed
+// as `...fQ==` arrives at runtime as `...fQ&#x3D;&#x3D;`. atob() then throws on
+// the `&`/`#`/`;`, parseSites returns {}, and every host is denied. We reverse
+// that here (both hex and decimal entities, plus &amp;) so the mangled value
+// decodes identically to the clean one. Harmless on an un-mangled value.
+const unescapeEntities = (s) => s
+  .replace(/&amp;/g, '&')
+  .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(parseInt(d, 10)));
+
+// Decodes a base64 (or base64url) config value to its string, tolerant of the
+// entity mangling above and of missing/extra padding. Returns null if it is not
+// decodable base64.
+const decodeBase64Config = (value) => {
+  let s = unescapeEntities(value).trim().replace(/-/g, '+').replace(/_/g, '/');
+  s = s.replace(/=+$/, '');
+  const mod = s.length % 4;
+  if (mod === 1) { return null; }
+  if (mod > 0) { s += '='.repeat(4 - mod); }
+  try {
+    return atob(s);
+  } catch {
+    return null;
+  }
+};
+
 // Parses the SITES config once into a plain map. Any missing / malformed value
 // yields an empty map, which denies every host - fail closed by construction.
 //
@@ -45,18 +74,20 @@ const tryJson = (value) => {
 // string - its Handlebars template re-emits the value unquoted and HTML-escaped,
 // so the `{ } " :` (and the escaped `&quot;`) break the generator's own YAML
 // parse and the whole CDN config fails to deploy. Encoding to base64 - which has
-// no YAML/HTML-significant characters - sidesteps that. Local dev (fastly.toml)
-// may still use raw JSON, so we try raw first, then base64-decode. Revert to raw
-// JSON once SKYOPS-157895 ships; this parser keeps working either way.
+// no YAML/HTML-significant characters - sidesteps the crash, but the generator
+// still HTML-escapes the base64 `=` padding (see decodeBase64Config). Local dev
+// (fastly.toml) may still use raw JSON, so we try raw first, then base64-decode.
+// Revert to raw JSON once SKYOPS-157895 ships; this parser keeps working either way.
 export const parseSites = (env) => {
   const raw = env?.SITES ?? '{}';
-  let result = tryJson(raw);
-  if (result === null) {
-    let decoded = null;
-    try { decoded = atob(raw); } catch { decoded = null; }
-    if (decoded !== null) { result = tryJson(decoded); }
+  const result = tryJson(raw);
+  if (result !== null) { return result; }
+  const decoded = decodeBase64Config(raw);
+  if (decoded !== null) {
+    const fromB64 = tryJson(decoded);
+    if (fromB64 !== null) { return fromB64; }
   }
-  return result ?? {};
+  return {};
 };
 
 // Resolves the target site for a request host, or null when the host is not a
