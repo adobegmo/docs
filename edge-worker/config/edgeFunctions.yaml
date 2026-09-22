@@ -39,10 +39,16 @@ data:
     # WORKAROUND: a second ${{...}} secret variable resolves EMPTY in the Adobe CDN
     # config generator (confirmed: DOCKET_IMS_CLIENT_SECRET, set non-empty, arrives
     # empty in the secret bundle regardless of order, while DOCKET_SESSION_SECRET
-    # resolves fine). So both real secrets are packed into the ONE working variable
+    # resolves fine). So every real secret is packed into the ONE working variable
     # as a base64 JSON bundle and split in src/lib/env.js. Build + set with:
-    #   node -e 'console.log(Buffer.from(JSON.stringify({SESSION_SECRET:"<hex>",IMS_CLIENT_SECRET:"<ims-secret>"})).toString("base64"))'
-    #   aio cloudmanager:set-pipeline-variables 58562245 --programId 223257 --secret DOCKET_SESSION_SECRET "<base64>"
-    # Revert to two separate secret variables once the pipeline bug is fixed.
+    #   node -e 'console.log(Buffer.from(JSON.stringify({SESSION_SECRET:"<hex>",IMS_CLIENT_SECRET:"<ims-secret>",ORIGIN_AUTHENTICATION:"<hlx_site-token>"})).toString("base64"))'
+    #   aio cloudmanager:set-pipeline-variables <pipelineId> --programId <programId> --secret DOCKET_SESSION_SECRET "<base64>"
+    # SESSION_SECRET + IMS_CLIENT_SECRET are shared across sites; ORIGIN_AUTHENTICATION
+    # is the site's OWN aem.page/aem.live token (token-based Site Authentication), so
+    # each program's bundle carries a DIFFERENT ORIGIN_AUTHENTICATION. It is optional:
+    # omit it until the site's origin is locked. Per program, e.g.:
+    #   red     -> --programId 223257 (pipeline 58562245)
+    #   writing -> --programId 223466 (its own pipeline id)
+    # Revert to separate secret variables once the pipeline bug is fixed.
     - key: APP_SECRETS
       value: ${{DOCKET_SESSION_SECRET}}

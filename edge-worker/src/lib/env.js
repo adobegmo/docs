@@ -66,15 +66,20 @@ export const loadEnv = async () => {
   // WORKAROUND: a SECOND ${{...}} secret variable resolves EMPTY in the Adobe CDN
   // config generator (confirmed: DOCKET_IMS_CLIENT_SECRET, set non-empty, comes
   // back empty in the secret bundle, while DOCKET_SESSION_SECRET resolves fine).
-  // So both real secrets are packed into the ONE working variable as a base64 JSON
+  // So every real secret is packed into the ONE working variable as a base64 JSON
   // bundle: ${{DOCKET_SESSION_SECRET}} -> APP_SECRETS. base64 also sidesteps the
   // SKYOPS-157895 special-character mangling. We unpack it over the individual keys
   // here. Local dev sets the individual secrets directly, so this no-ops there.
   // Revert to separate secret variables once the pipeline bug is fixed.
+  //
+  // ORIGIN_AUTHENTICATION is the per-site AEM origin token (token-based Site
+  // Authentication). It is set per Cloud Manager program (one program per site),
+  // so each program's bundle carries that site's own hlx_ token, and proxy.js
+  // reads the single env.ORIGIN_AUTHENTICATION for the site this program serves.
   if (env.APP_SECRETS) {
     try {
       const bundle = JSON.parse(atob(env.APP_SECRETS.trim()));
-      for (const key of ['SESSION_SECRET', 'IMS_CLIENT_SECRET']) {
+      for (const key of ['SESSION_SECRET', 'IMS_CLIENT_SECRET', 'ORIGIN_AUTHENTICATION']) {
         if (typeof bundle[key] === 'string' && bundle[key] !== '') { env[key] = bundle[key]; }
       }
     } catch { /* leave individual values in place */ }
