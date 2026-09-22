@@ -3,4 +3,8 @@ bin/
 pkg/
 *.wasm
 .aio
+# Local secret + deploy source of truth per site (.env.red, .env.writing, ...).
+# The committed template .env.example is the one exception.
 .env
+.env.*
+!.env.example
