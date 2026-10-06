@@ -17,6 +17,7 @@
 
 import { ConfigStore } from 'fastly:config-store';
 import { SecretStoreManager } from './secrets.js';
+import { parseOriginTokenMap } from './origin-auth.js';
 
 // Non-sensitive keys read synchronously from config_default.
 const CONFIG_KEYS = [
@@ -72,16 +73,18 @@ export const loadEnv = async () => {
   // here. Local dev sets the individual secrets directly, so this no-ops there.
   // Revert to separate secret variables once the pipeline bug is fixed.
   //
-  // ORIGIN_AUTHENTICATION is the per-site AEM origin token (token-based Site
-  // Authentication). It is set per Cloud Manager program (one program per site),
-  // so each program's bundle carries that site's own hlx_ token, and proxy.js
-  // reads the single env.ORIGIN_AUTHENTICATION for the site this program serves.
+  // AEM origin tokens (token-based Site Authentication) are per site. A program
+  // that fronts one site may carry a single ORIGIN_AUTHENTICATION; a program that
+  // fronts several (prod red + writing) carries ORIGIN_AUTHENTICATION_BY_SITE,
+  // a { "<site>": "hlx_..." } map. proxy.js picks via originTokenFor().
   if (env.APP_SECRETS) {
     try {
       const bundle = JSON.parse(atob(env.APP_SECRETS.trim()));
       for (const key of ['SESSION_SECRET', 'IMS_CLIENT_SECRET', 'ORIGIN_AUTHENTICATION']) {
         if (typeof bundle[key] === 'string' && bundle[key] !== '') { env[key] = bundle[key]; }
       }
+      const bySite = parseOriginTokenMap(bundle.ORIGIN_AUTHENTICATION_BY_SITE);
+      if (bySite) { env.ORIGIN_AUTHENTICATION_BY_SITE = bySite; }
     } catch { /* leave individual values in place */ }
   }
 

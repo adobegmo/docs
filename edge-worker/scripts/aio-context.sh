@@ -13,7 +13,7 @@
 #   scripts/aio-context.sh use  <name>   # copy .aio.<name> -> .aio  (pick a target)
 #   scripts/aio-context.sh save <name>   # copy .aio -> .aio.<name>  (snapshot current)
 #
-# Typical: `npm run deploy:red` / `npm run deploy:writing` call `use` for you.
+# Typical: `npm run deploy:test:red` / `npm run deploy:prod:writing` call `use` for you.
 # To onboard a new site: run `aio aem edge-functions setup`, then
 # `npm run context:save -- <name>` to capture it as a reusable template.
 
