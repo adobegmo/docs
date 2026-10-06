@@ -15,6 +15,8 @@
  * minus the per-viewer audience/query-index filtering (this site is all-or-nothing).
  */
 
+import { originTokenFor } from '../lib/origin-auth.js';
+
 // Builds the upstream request pointed at the resolved site's AEM origin.
 const formatRequest = (request, url, env, site) => {
   const aemUrl = new URL(url.href);
@@ -38,8 +40,10 @@ const formatRequest = (request, url, env, site) => {
 
   // Only authenticated requests reach this point, so the origin credential (when
   // the aem.live origin requires one) is attached to what gets proxied upstream.
-  if (env.ORIGIN_AUTHENTICATION) {
-    req.headers.set('authorization', `token ${env.ORIGIN_AUTHENTICATION}`);
+  // The token is per site (see origin-auth.js).
+  const token = originTokenFor(env, site);
+  if (token) {
+    req.headers.set('authorization', `token ${token}`);
   }
   return req;
 };

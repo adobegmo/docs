@@ -18,10 +18,12 @@ data:
     #   node -e 'console.log(Buffer.from(JSON.stringify(MAP)).toString("base64"))'
     # Decoded value below is:
     #   { "test.red.adobe.com":     { "org": "adobegmo", "site": "red" },
-    #     "test.writing.adobe.com": { "org": "adobegmo", "site": "writing" } }
+    #     "test.writing.adobe.com": { "org": "adobegmo", "site": "writing" },
+    #     "red.adobe.com":          { "org": "adobegmo", "site": "red",     "hostSuffix": "aem.live" },
+    #     "writing.adobe.com":      { "org": "adobegmo", "site": "writing", "hostSuffix": "aem.live" } }
     # Revert to raw JSON once SKYOPS-157895 ships (the parser accepts either).
     - key: SITES
-      value: "eyJ0ZXN0LnJlZC5hZG9iZS5jb20iOnsib3JnIjoiYWRvYmVnbW8iLCJzaXRlIjoicmVkIn0sInRlc3Qud3JpdGluZy5hZG9iZS5jb20iOnsib3JnIjoiYWRvYmVnbW8iLCJzaXRlIjoid3JpdGluZyJ9fQ=="
+      value: "eyJ0ZXN0LnJlZC5hZG9iZS5jb20iOnsib3JnIjoiYWRvYmVnbW8iLCJzaXRlIjoicmVkIn0sInRlc3Qud3JpdGluZy5hZG9iZS5jb20iOnsib3JnIjoiYWRvYmVnbW8iLCJzaXRlIjoid3JpdGluZyJ9LCJyZWQuYWRvYmUuY29tIjp7Im9yZyI6ImFkb2JlZ21vIiwic2l0ZSI6InJlZCIsImhvc3RTdWZmaXgiOiJhZW0ubGl2ZSJ9LCJ3cml0aW5nLmFkb2JlLmNvbSI6eyJvcmciOiJhZG9iZWdtbyIsInNpdGUiOiJ3cml0aW5nIiwiaG9zdFN1ZmZpeCI6ImFlbS5saXZlIn19"
     - key: AEM_HOST_SUFFIX
       value: "aem.page"           # default AEM tier: aem.live (published) or aem.page (preview)
     - key: IMS_ENV
@@ -43,12 +45,16 @@ data:
     # as a base64 JSON bundle and split in src/lib/env.js. Build + set with:
     #   node -e 'console.log(Buffer.from(JSON.stringify({SESSION_SECRET:"<hex>",IMS_CLIENT_SECRET:"<ims-secret>",ORIGIN_AUTHENTICATION:"<hlx_site-token>"})).toString("base64"))'
     #   aio cloudmanager:set-pipeline-variables <pipelineId> --programId <programId> --secret DOCKET_SESSION_SECRET "<base64>"
-    # SESSION_SECRET + IMS_CLIENT_SECRET are shared across sites; ORIGIN_AUTHENTICATION
-    # is the site's OWN aem.page/aem.live token (token-based Site Authentication), so
-    # each program's bundle carries a DIFFERENT ORIGIN_AUTHENTICATION. It is optional:
-    # omit it until the site's origin is locked. Per program, e.g.:
+    # SESSION_SECRET + IMS_CLIENT_SECRET are shared across sites. Origin tokens are
+    # each site's OWN aem.page/aem.live token (token-based Site Authentication) and
+    # are optional (omit until the site's origin is locked). A single-site program
+    # carries ORIGIN_AUTHENTICATION; a multi-site program (prod) carries
+    # ORIGIN_AUTHENTICATION_BY_SITE: {"red":"hlx_...","writing":"hlx_..."}, keyed by
+    # the `site` name in SITES (see src/lib/origin-auth.js). Use
+    # scripts/set-secrets.sh rather than building the bundle by hand. Per program:
     #   red     -> --programId 223257 (pipeline 58562245)
-    #   writing -> --programId 223466 (its own pipeline id)
+    #   writing -> --programId 223466 (pipeline 58649449)
+    #   prod (red.adobe.com + writing.adobe.com) -> --programId 218852 (pipeline 59653813)
     # Revert to separate secret variables once the pipeline bug is fixed.
     - key: APP_SECRETS
       value: ${{DOCKET_SESSION_SECRET}}

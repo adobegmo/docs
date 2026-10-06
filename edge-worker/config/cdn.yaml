@@ -31,3 +31,19 @@ data:
           type: selectAemOrigin
           originName: edgefunction-docket-auth
           skipCache: true
+      - name: gate-red-prod
+        when:
+          reqProperty: domain
+          equals: "red.adobe.com"
+        action:
+          type: selectAemOrigin
+          originName: edgefunction-docket-auth
+          skipCache: true
+      - name: gate-writing-prod
+        when:
+          reqProperty: domain
+          equals: "writing.adobe.com"
+        action:
+          type: selectAemOrigin
+          originName: edgefunction-docket-auth
+          skipCache: true

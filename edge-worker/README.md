@@ -62,8 +62,8 @@ the `config_default` config store):
   `IMS_SCOPE` (confidential service identity). Optional: `SESSION_MAX_AGE_MS`.
 
 Secrets are Cloud Manager secrets referenced from `config/edgeFunctions.yaml`
-`secrets`: `SESSION_SECRET`, `IMS_CLIENT_SECRET` (and optional
-`ORIGIN_AUTHENTICATION`). **Never commit secret values.** IMS credentials and the
+`secrets`: `SESSION_SECRET`, `IMS_CLIENT_SECRET` (and optional origin tokens —
+`ORIGIN_AUTHENTICATION` or `ORIGIN_AUTHENTICATION_BY_SITE`). **Never commit secret values.** IMS credentials and the
 signing secret are shared across all sites in `SITES`; the visitor allowlist is
 per-site (each site's own da.live config).
 
@@ -71,12 +71,21 @@ Because of a config-generator bug (a second `${{...}}` secret resolves empty), a
 of these are packed into the **one** working secret variable `DOCKET_SESSION_SECRET`
 as a base64 JSON bundle (`APP_SECRETS`) and split back apart in `src/lib/env.js`.
 
-`ORIGIN_AUTHENTICATION` enables **token-based Site Authentication** on the AEM
-origin: once set, `proxy.js` sends `Authorization: token <hlx_…>` on every upstream
-request, so the `main--<site>--<org>.aem.page` origin can 401 everyone except this
-worker. Because each site is its own Cloud Manager program with its own secret
-bundle, each program carries **its own** token — `red` and `writing` are separate
-AEM sites with **different** tokens and **separate** `access/preview.json` configs.
+Origin tokens enable **token-based Site Authentication** on the AEM origin: once
+set, `proxy.js` sends `Authorization: token <hlx_…>` on every upstream request, so
+the `main--<site>--<org>.aem.page`/`.aem.live` origin can 401 everyone except this
+worker. `red` and `writing` are separate AEM sites with **different** tokens and
+separate `access/*.json` configs, so the token is chosen **per site**
+([`src/lib/origin-auth.js`](src/lib/origin-auth.js)):
+
+- A single-site program (`test.red`, `test.writing`) carries one
+  `ORIGIN_AUTHENTICATION`.
+- A multi-site program (prod, program 218852, fronts both `red.adobe.com` and
+  `writing.adobe.com` with **one** bundle) carries
+  `ORIGIN_AUTHENTICATION_BY_SITE` — `{ "red": "hlx_…", "writing": "hlx_…" }`, keyed
+  by the `site` name in `SITES`. When the map is present it is authoritative: a site
+  missing from it gets **no** token, so one site's token is never sent to another
+  site's origin.
 Minting the token and enabling the origin lock is an AEM admin-API step; see the
 ["Locking the AEM origin"](#locking-the-aem-origin) section below.
 
@@ -84,12 +93,16 @@ Minting the token and enabling the origin lock is an AEM admin-API step; see the
 
 Cloud Manager will not let you read a secret back once set, but rebuilding the
 `APP_SECRETS` bundle to add or rotate any **one** value needs the current value of
-the others. So each target keeps a gitignored **`.env.<env>.<site>`** file (`env`
-is `test`|`prod`, `site` is `red`|`writing`|…) as the canonical local record — copy
-[`.env.example`](.env.example) and fill it in. `SESSION_SECRET` (generate with
-`openssl rand -hex 32`) and `IMS_CLIENT_SECRET` are the **same** across sites in an
-environment (test and prod each get their own); `ORIGIN_AUTHENTICATION` is per-site;
-`PROGRAM_ID`/`PIPELINE_ID` target that site's config pipeline.
+the others. So each target — one per Cloud Manager **program** — keeps a gitignored
+**`.env.<target>`** file as the canonical local record: `.env.test.red` and
+`.env.test.writing` (one site each), and `.env.prod` (both prod sites share program
+218852, hence one bundle and one file). Copy [`.env.example`](.env.example) and fill
+it in. `SESSION_SECRET` (generate with `openssl rand -hex 32`) is shared across sites
+within an environment — give prod its own. `IMS_CLIENT_SECRET` is the **same** in
+every file (one IMS client serves test and prod). Origin tokens are per-site:
+`ORIGIN_AUTHENTICATION=` in a single-site file, `ORIGIN_AUTHENTICATION_RED=` /
+`ORIGIN_AUTHENTICATION_WRITING=` in `.env.prod`. `PROGRAM_ID`/`PIPELINE_ID` target
+that program's config pipeline.
 
 Push a target's secrets with the helper (never hand-run the base64/`aio` steps):
 
@@ -97,34 +110,36 @@ Push a target's secrets with the helper (never hand-run the base64/`aio` steps):
 | --- | --- |
 | `test.red` (program 223257) | `npm run secrets:test:red` |
 | `test.writing` (program 223466) | `npm run secrets:test:writing` |
+| `prod` (program 218852: red + writing) | `npm run secrets:prod` |
 
-`scripts/set-secrets.sh <env>.<site>` reads `.env.<env>.<site>`, packs the bundle,
+`scripts/set-secrets.sh <target>` reads `.env.<target>`, packs the bundle,
 and sets `DOCKET_SESSION_SECRET` on that program (values never touch argv or shell
 history). `DRY_RUN=1 npm run secrets:test:red` shows what it would do without
-changing anything. Redeploy afterwards (`npm run deploy:<site>`) so the function
+changing anything. Redeploy afterwards (`npm run deploy:<env>:<site>`; for prod either
+site's script redeploys the shared program) so the function
 reads the new bundle. **Never commit a filled-in `.env.*`; keep it off backups/sync.**
 
-**Adding the prod targets (not set up yet):** prod reuses the **same AEM sites** on
-the **`aem.live`** (published) tier — e.g. `main--red--adobegmo.aem.live`. For each
-prod site:
+**Prod targets:** prod reuses the **same AEM sites** on the **`aem.live`**
+(published) tier — e.g. `main--red--adobegmo.aem.live` — and both prod hosts live in
+**one** Cloud Manager program, 218852 "Adobe GMO Docs" (config pipeline
+"Prod Edge Config", 59653813 — one config pipeline per program, and it deploys
+`edge-worker/config` to **every** domain on the program, so it serves both prod
+hosts). Already in place: the prod `SITES` entries
+(`"hostSuffix": "aem.live"`) and `cdn.yaml` rules, the `.aio.prod.red` /
+`.aio.prod.writing` contexts, and the `deploy:prod:*` / `secrets:prod` scripts.
+Remaining:
 
-- Add a prod host entry to `SITES` in `edgeFunctions.yaml` with
-  `"hostSuffix": "aem.live"` (the map is shared across programs; each program serves
-  its own registered host, resolving to the right tier per entry), plus a matching
-  `cdn.yaml` rule for the prod host.
-- Create its Cloud Manager program + Edge Delivery config pipeline; add a
-  `.aio.prod.<site>` context and `secrets:prod:<site>` + `deploy:prod:<site>` npm
-  scripts. (You may also rename the current `.aio.red`/`deploy:red` to the `test.`
-  form then, so both dimensions read consistently.)
-- Add a `.env.prod.<site>`: prod gets its **own** `SESSION_SECRET` and IMS client,
-  but `ORIGIN_AUTHENTICATION` is the **same token as `.env.test.<site>`** — it is a
-  per-*site* AEM secret, and one token covers both that site's `access/preview.json`
-  and `access/live.json`.
-- Lock the prod origin by POSTing that site token's `secretId` to
+- In Cloud Manager, register `red.adobe.com` and `writing.adobe.com` on program
+  218852 and point pipeline 59653813 at this repo's `main`, `/edge-worker/config`.
+- Add the prod hosts' redirect URIs to the shared IMS client.
+- Fill in `.env.prod`: a new `SESSION_SECRET`, the same `IMS_CLIENT_SECRET` as test,
+  and `ORIGIN_AUTHENTICATION_RED` / `ORIGIN_AUTHENTICATION_WRITING` set to the **same
+  tokens as `.env.test.red` / `.env.test.writing`** — the token is a per-*site* AEM
+  secret, and one token covers both `access/preview.json` and `access/live.json`.
+  Then `npm run secrets:prod`, run the pipeline, and `npm run deploy:prod:red`.
+- Lock each prod origin by POSTing that site token's `secretId` to
   `.../sites/<site>/access/live.json` (same as the preview steps below, but
   `live.json` instead of `preview.json`).
-
-The helper needs no change — it keys off whatever `<env>.<site>` file you pass.
 
 ## Prerequisites (before deploy)
 
@@ -183,16 +198,18 @@ committed **`.aio.<name>`** template per site records each site's org/program:
 
 | Site | Command |
 | --- | --- |
-| `test.red.adobe.com` (program 223257) | `npm run deploy:red` |
-| `test.writing.adobe.com` (program 223466) | `npm run deploy:writing` |
+| `test.red.adobe.com` (program 223257) | `npm run deploy:test:red` |
+| `test.writing.adobe.com` (program 223466) | `npm run deploy:test:writing` |
+| `red.adobe.com` (program 218852) | `npm run deploy:prod:red` |
+| `writing.adobe.com` (program 218852) | `npm run deploy:prod:writing` |
 
-Each `deploy:<name>` swaps `.aio` to that site's template, then builds and
+Each `deploy:<env>:<site>` swaps `.aio` to that site's template, then builds and
 deploys. `npm run tail:red` / `tail:writing` stream logs from the matching
 target. To switch context without deploying: `npm run context:use -- <name>`.
 
 **Onboard a new site's deploy target:** run `aio aem edge-functions setup`
 (pick its org/program/domain), then `npm run context:save -- <name>` to capture
-it as `.aio.<name>`. Commit that template and add a `deploy:<name>` script.
+it as `.aio.<name>`. Commit that template and add a `deploy:<env>:<site>` script.
 
 In Cloud Manager, add this repo under **Repositories**, then create an **Edge
 Delivery configuration pipeline** whose Source Code step points at this repo, the
@@ -219,11 +236,12 @@ Do this once per site (example uses `red`; needs an AEM admin `x-auth-token`):
    ```
 
 2. **Put the token in that target's secret bundle and push it.** Add the `hlx_…`
-   value to that target's gitignored `.env.<env>.<site>` (`ORIGIN_AUTHENTICATION=…`),
+   value to that target's gitignored env file — `ORIGIN_AUTHENTICATION=…` in
+   `.env.test.red`, or `ORIGIN_AUTHENTICATION_RED=…` in the multi-site `.env.prod` —
    then:
    ```bash
    npm run secrets:test:red   # packs .env.test.red into APP_SECRETS + sets the pipeline var
-   npm run deploy:red         # redeploy so the function reads the new bundle
+   npm run deploy:test:red    # redeploy so the function reads the new bundle
    ```
    (`scripts/set-secrets.sh` builds the base64 bundle and calls
    `aio cloudmanager:set-pipeline-variables` for you — see
