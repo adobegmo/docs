@@ -141,6 +141,12 @@ Remaining:
   `.../sites/<site>/access/live.json` (same as the preview steps below, but
   `live.json` instead of `preview.json`).
 
+## Links
+- Developer Console: [Adobe GMO Docs](https://developer.adobe.com/console/268779/projects)
+- Cloud Manager:
+  - [Red and Writing](https://experience.adobe.com/#/@adobecomdx/cloud-manager/home.html/program/230054)
+  - [docs.terms](https://experience.adobe.com/#/@adobecomdx/cloud-manager/home.html/program/229508)
+
 ## Prerequisites (before deploy)
 
 1. A **non-sandbox** Cloud Manager program with Edge Delivery Services + Edge
