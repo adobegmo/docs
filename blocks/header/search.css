@@ -1,0 +1,92 @@
+.search-dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(70vh, 640px);
+  margin: 10vh auto auto;
+  padding: 0;
+  border: 1px solid light-dark(var(--s2-gray-300), var(--s2-gray-700));
+  border-radius: 12px;
+  background: light-dark(var(--light-color), var(--s2-gray-800));
+  color: light-dark(var(--dark-color), var(--light-color));
+  font-family: var(--font-family);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+  overflow: hidden;
+
+  &[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &::backdrop {
+    background: rgb(0 0 0 / 40%);
+  }
+
+  .search-input {
+    flex: 0 0 auto;
+    padding: 16px 20px;
+    border: 0;
+    border-bottom: 1px solid light-dark(var(--s2-gray-200), var(--s2-gray-700));
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: var(--body-font-size-l);
+    outline: none;
+  }
+
+  .search-status {
+    margin: 0;
+    padding: 8px 20px 0;
+    color: light-dark(var(--s2-gray-600), var(--s2-gray-400));
+    font-size: var(--body-font-size-xs);
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  .search-results {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 8px;
+    list-style: none;
+    overflow-y: auto;
+
+    &:empty {
+      display: none;
+    }
+
+    a {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    a:hover,
+    li[aria-selected="true"] a {
+      background: light-dark(var(--s2-gray-100), var(--s2-gray-700));
+    }
+  }
+
+  .search-result-title {
+    font-weight: 700;
+  }
+
+  .search-result-heading {
+    color: light-dark(var(--s2-blue-900), var(--s2-blue-700));
+    font-size: var(--body-font-size-s);
+  }
+
+  .search-result-snippet {
+    color: light-dark(var(--s2-gray-700), var(--s2-gray-400));
+    font-size: var(--body-font-size-s);
+    line-height: 1.4;
+  }
+
+  mark {
+    background: light-dark(var(--s2-yellow-100), var(--s2-yellow-600));
+    color: inherit;
+  }
+}

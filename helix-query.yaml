@@ -66,3 +66,27 @@ indices:
         select: head > meta[property="og:title"]
         value: |
           attribute(el, "content")
+  search:
+    include:
+      - /**
+    exclude:
+      - /fragments/**
+      - /drafts/**
+    target: /search-index.json
+    properties:
+      title:
+        select: head > meta[property="og:title"]
+        value: |
+          attribute(el, "content")
+      description:
+        select: head > meta[name="description"]
+        value: |
+          attribute(el, "content")
+      headings:
+        select: main h2, main h3
+        values: |
+          textContent(el)
+      content:
+        select: main
+        value: |
+          words(textContent(el), 0, 1500)

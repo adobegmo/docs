@@ -47,6 +47,20 @@ header .actions-section {
       height: 22px;
     }
   }
+
+  .search-button {
+    display: block;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+
+    svg {
+      height: 22px;
+    }
+  }
 }
 
 @media (width >= 900px) {
